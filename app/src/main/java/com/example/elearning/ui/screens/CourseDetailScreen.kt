@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,35 +27,38 @@ fun CourseDetailScreen(
     onBack: () -> Unit,
     onToggleCompleted: (String) -> Unit,
     onMaterialClick: (String) -> Unit,
-    onQuizClick: (String) -> Unit
+    onQuizClick: (String) -> Unit,
+    saveErrors: Flow<Unit> = emptyFlow()
 ) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text(stringResource(R.string.profile_back)) }
-            Text(uiState.course?.title ?: stringResource(R.string.detail_title), style = MaterialTheme.typography.titleLarge)
-        }
-        when {
-            uiState.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-            uiState.notFound -> Text(stringResource(R.string.detail_missing))
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item {
-                    Text(uiState.course?.description.orEmpty())
-                    Spacer(Modifier.height(16.dp))
-                    Text(stringResource(R.string.detail_progress, uiState.completedCount, uiState.totalCount))
-                    LinearProgressIndicator(
-                        progress = { uiState.completedCount.toFloat() / uiState.totalCount.coerceAtLeast(1) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                item { Text(stringResource(R.string.detail_materials), style = MaterialTheme.typography.titleMedium) }
-                if (uiState.materials.isEmpty()) item { Text(stringResource(R.string.detail_no_materials)) }
-                items(uiState.materials) { material ->
-                    MaterialRow(material, { onMaterialClick(material.id) }, { onToggleCompleted(material.id) })
-                }
-                item { Text(stringResource(R.string.detail_quizzes), style = MaterialTheme.typography.titleMedium) }
-                if (uiState.quizzes.isEmpty()) item { Text(stringResource(R.string.detail_no_quizzes)) }
-                items(uiState.quizzes) { quiz ->
-                    TextButton(onClick = { onQuizClick(quiz.id) }) { Text(quiz.title) }
+    CompletionSnackbar(saveErrors) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text(stringResource(R.string.profile_back)) }
+                Text(uiState.course?.title ?: stringResource(R.string.detail_title), style = MaterialTheme.typography.titleLarge)
+            }
+            when {
+                uiState.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+                uiState.notFound -> Text(stringResource(R.string.detail_missing))
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        Text(uiState.course?.description.orEmpty())
+                        Spacer(Modifier.height(16.dp))
+                        Text(stringResource(R.string.detail_progress, uiState.completedCount, uiState.totalCount))
+                        LinearProgressIndicator(
+                            progress = { uiState.completedCount.toFloat() / uiState.totalCount.coerceAtLeast(1) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    item { Text(stringResource(R.string.detail_materials), style = MaterialTheme.typography.titleMedium) }
+                    if (uiState.materials.isEmpty()) item { Text(stringResource(R.string.detail_no_materials)) }
+                    items(uiState.materials) { material ->
+                        MaterialRow(material, { onMaterialClick(material.id) }, { onToggleCompleted(material.id) })
+                    }
+                    item { Text(stringResource(R.string.detail_quizzes), style = MaterialTheme.typography.titleMedium) }
+                    if (uiState.quizzes.isEmpty()) item { Text(stringResource(R.string.detail_no_quizzes)) }
+                    items(uiState.quizzes) { quiz ->
+                        TextButton(onClick = { onQuizClick(quiz.id) }) { Text(quiz.title) }
+                    }
                 }
             }
         }

@@ -11,6 +11,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.elearning.ui.viewmodel.SaveStatus
 import com.example.elearning.domain.quiz.QuizOutcome
 import com.example.elearning.domain.quiz.ReviewItem
 import com.example.elearning.ui.theme.ElearningTheme
@@ -21,7 +22,9 @@ fun QuizResultScreen(
     outcome: QuizOutcome,
     review: List<ReviewItem>,
     onRetry: () -> Unit,
-    onReturnToCourse: () -> Unit
+    onReturnToCourse: () -> Unit,
+    saveStatus: SaveStatus,
+    onRetrySave: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -36,9 +39,21 @@ fun QuizResultScreen(
                 Text(stringResource(R.string.quiz_result_percent, outcome.percent), style = MaterialTheme.typography.headlineMedium)
                 ResultStatus(outcome.passed, stringResource(if (outcome.passed) R.string.quiz_passed else R.string.quiz_failed))
             }
+            if (saveStatus == SaveStatus.FAILED) {
+                item {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(stringResource(R.string.quiz_save_failed))
+                            TextButton(onClick = onRetrySave) { Text(stringResource(R.string.quiz_retry)) }
+                        }
+                    }
+                }
+            } else if (saveStatus == SaveStatus.SAVING) {
+                item { CircularProgressIndicator(Modifier.size(24.dp)) }
+            }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onRetry, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.quiz_retry)) }
+                    Button(onClick = onRetry, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.quiz_new_attempt)) }
                     OutlinedButton(onClick = onReturnToCourse, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.quiz_return)) }
                 }
             }
@@ -70,7 +85,7 @@ private fun ResultStatus(correct: Boolean, label: String) {
 private fun PassedQuizPreview() {
     ElearningTheme {
         QuizResultScreen(QuizOutcome(1, 1, 100, true, emptyList()),
-            listOf(ReviewItem("Który typ przechowuje tekst?", "String", "String", true)), {}, {})
+            listOf(ReviewItem("Który typ przechowuje tekst?", "String", "String", true)), {}, {}, SaveStatus.SAVED, {})
     }
 }
 
@@ -79,6 +94,6 @@ private fun PassedQuizPreview() {
 private fun FailedQuizPreview() {
     ElearningTheme {
         QuizResultScreen(QuizOutcome(0, 1, 0, false, emptyList()),
-            listOf(ReviewItem("Który typ przechowuje tekst?", "Int", "String", false)), {}, {})
+            listOf(ReviewItem("Który typ przechowuje tekst?", "Int", "String", false)), {}, {}, SaveStatus.FAILED, {})
     }
 }

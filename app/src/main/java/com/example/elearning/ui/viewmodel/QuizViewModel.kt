@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class SaveStatus { NOT_SAVED, SAVING, SAVED, FAILED }
+
 data class QuizUiState(
     val quizTitle: String = "",
     val questions: List<QuizQuestion> = emptyList(),
@@ -23,7 +25,8 @@ data class QuizUiState(
     val answers: Map<String, Int?> = emptyMap(),
     val isLoading: Boolean = true,
     val notFound: Boolean = false,
-    val outcome: QuizOutcome? = null
+    val outcome: QuizOutcome? = null,
+    val saveStatus: SaveStatus = SaveStatus.NOT_SAVED
 ) {
     val currentQuestion get() = questions.getOrNull(currentIndex)
     val isLastQuestion get() = currentIndex == questions.lastIndex
@@ -36,11 +39,14 @@ class QuizViewModel(
     repository: QuizRepository,
     private val results: QuizResultRepository,
     private val syncer: QuizResultSyncer,
-    private val applicationScope: CoroutineScope
+    private val applicationScope: CoroutineScope,
+    private val currentUserId: () -> String?
 ) : ViewModel() {
     private val state = MutableStateFlow(QuizUiState())
     val uiState = state.asStateFlow()
     private var threshold = 60
+    private var ownerId = currentUserId()
+    private var completedAt = 0L
 
     init {
         viewModelScope.launch {
@@ -68,38 +74,70 @@ class QuizViewModel(
         if (it.outcome == null && it.currentIndex > 0) it.copy(currentIndex = it.currentIndex - 1) else it
     }
 
-    fun finish(userId: String?) {
+    fun finish() {
         val current = state.value
         if (current.outcome != null || current.questions.isEmpty() || current.answeredCount != current.questions.size) return
 
         val outcome = QuizScorer.score(current.questions, current.answers, threshold)
-        if (!state.compareAndSet(current, current.copy(outcome = outcome)) || userId.isNullOrBlank()) return
+        completedAt = maxOf(System.currentTimeMillis(), completedAt + 1)
+        save(current, outcome)
+    }
 
-        val completedAt = System.currentTimeMillis()
+    fun retrySave() {
+        val current = state.value
+        if (current.saveStatus != SaveStatus.FAILED) return
+        save(current, current.outcome ?: return)
+    }
+
+    private fun save(current: QuizUiState, outcome: QuizOutcome) {
+        val owner = ownerId
+        if (owner.isNullOrBlank() || currentUserId() != owner) {
+            state.compareAndSet(current, current.copy(outcome = outcome, saveStatus = SaveStatus.FAILED))
+            return
+        }
+        val saving = current.copy(outcome = outcome, saveStatus = SaveStatus.SAVING)
+        if (!state.compareAndSet(current, saving)) return
+
+        val attemptTime = completedAt
         applicationScope.launch {
+            if (currentUserId() != owner) {
+                updateSaveStatus(outcome, SaveStatus.FAILED)
+                return@launch
+            }
             try {
-                results.saveResult(userId, quizId, outcome, completedAt)
-                syncer.syncAll(userId)
+                results.saveResult(owner, quizId, outcome, attemptTime)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                // Wynik bieżącej próby pozostaje dostępny w pamięci po błędzie zapisu.
+                updateSaveStatus(outcome, SaveStatus.FAILED)
+                return@launch
             }
+            updateSaveStatus(outcome, SaveStatus.SAVED)
+            syncer.syncAll(owner)
         }
     }
 
-    fun restart() = state.update { it.copy(currentIndex = 0, answers = emptyMap(), outcome = null) }
+    private fun updateSaveStatus(outcome: QuizOutcome, status: SaveStatus) {
+        // Zapis poprzedniej próby może zakończyć się już po restarcie.
+        state.update { if (it.outcome === outcome) it.copy(saveStatus = status) else it }
+    }
+
+    fun restart() {
+        ownerId = currentUserId()
+        state.update { it.copy(currentIndex = 0, answers = emptyMap(), outcome = null, saveStatus = SaveStatus.NOT_SAVED) }
+    }
 
     class Factory(
         private val quizId: String,
         private val repository: QuizRepository,
         private val results: QuizResultRepository,
         private val syncer: QuizResultSyncer,
-        private val applicationScope: CoroutineScope
+        private val applicationScope: CoroutineScope,
+        private val currentUserId: () -> String?
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(QuizViewModel::class.java))
-            return modelClass.cast(QuizViewModel(quizId, repository, results, syncer, applicationScope))!!
+            return modelClass.cast(QuizViewModel(quizId, repository, results, syncer, applicationScope, currentUserId))!!
         }
     }
 }

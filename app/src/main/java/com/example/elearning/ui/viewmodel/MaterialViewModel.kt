@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -25,6 +28,8 @@ class MaterialViewModel(
     private val repository: MaterialRepository
 ) : ViewModel() {
     private val material = repository.observeMaterial(materialId, userId)
+    private val errors = Channel<Unit>(Channel.BUFFERED)
+    val saveErrors = errors.receiveAsFlow()
     private val completionLock = Mutex()
     val uiState = material.map {
         MaterialUiState(material = it, isLoading = false, notFound = it == null)
@@ -32,9 +37,15 @@ class MaterialViewModel(
 
     fun toggleCompleted() {
         viewModelScope.launch {
-            completionLock.withLock {
-                val current = material.first() ?: return@withLock
-                repository.setCompleted(userId, current.id, !current.isCompleted)
+            try {
+                completionLock.withLock {
+                    val current = material.first() ?: return@withLock
+                    repository.setCompleted(userId, current.id, !current.isCompleted)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                errors.send(Unit)
             }
         }
     }

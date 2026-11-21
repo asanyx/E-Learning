@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,30 +25,37 @@ import com.example.elearning.ui.viewmodel.MaterialUiState
 import com.example.platformaELearningowa.R
 
 @Composable
-fun MaterialScreen(uiState: MaterialUiState, onToggleCompleted: () -> Unit, onBack: () -> Unit) {
+fun MaterialScreen(
+    uiState: MaterialUiState,
+    onToggleCompleted: () -> Unit,
+    onBack: () -> Unit,
+    saveErrors: Flow<Unit> = emptyFlow()
+) {
     val material = uiState.material
     val context = LocalContext.current
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text(stringResource(R.string.profile_back)) }
-            Text(material?.title ?: stringResource(R.string.material_title), style = MaterialTheme.typography.titleLarge)
-        }
-        when {
-            uiState.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-            uiState.notFound -> Text(stringResource(R.string.material_missing))
-            material != null -> {
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    when (material.type) {
-                        MaterialType.TEXT -> Text(material.contentUrl)
-                        MaterialType.PDF, MaterialType.VIDEO -> {
-                            val label = if (material.type == MaterialType.PDF) R.string.material_pdf else R.string.material_video
-                            Button(onClick = { openMaterial(context, material) }) { Text(stringResource(label)) }
+    CompletionSnackbar(saveErrors) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text(stringResource(R.string.profile_back)) }
+                Text(material?.title ?: stringResource(R.string.material_title), style = MaterialTheme.typography.titleLarge)
+            }
+            when {
+                uiState.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+                uiState.notFound -> Text(stringResource(R.string.material_missing))
+                material != null -> {
+                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        when (material.type) {
+                            MaterialType.TEXT -> Text(material.contentUrl)
+                            MaterialType.PDF, MaterialType.VIDEO -> {
+                                val label = if (material.type == MaterialType.PDF) R.string.material_pdf else R.string.material_video
+                                Button(onClick = { openMaterial(context, material) }) { Text(stringResource(label)) }
+                            }
                         }
                     }
-                }
-                val label = if (material.isCompleted) R.string.material_unmark else R.string.material_mark
-                Button(onClick = onToggleCompleted, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                    Text(stringResource(label))
+                    val label = if (material.isCompleted) R.string.material_unmark else R.string.material_mark
+                    Button(onClick = onToggleCompleted, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Text(stringResource(label))
+                    }
                 }
             }
         }

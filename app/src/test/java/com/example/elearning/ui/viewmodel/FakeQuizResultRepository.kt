@@ -9,9 +9,11 @@ import kotlinx.coroutines.flow.map
 internal class FakeQuizResultRepository : QuizResultRepository {
     private val results = MutableStateFlow(emptyList<QuizResult>())
     var saveCalls = 0
+    val attemptedTimes = mutableListOf<Long>()
     var failOnSave = false
 
     override suspend fun saveResult(userId: String, quizId: String, outcome: QuizOutcome, completedAt: Long) {
+        attemptedTimes.add(completedAt)
         saveCalls++
         check(!failOnSave) { "Błąd zapisu" }
         results.value = listOf(QuizResult(saveCalls.toLong(), userId, quizId, outcome.correctCount,

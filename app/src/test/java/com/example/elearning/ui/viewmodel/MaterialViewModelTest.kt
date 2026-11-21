@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -51,6 +52,18 @@ class MaterialViewModelTest {
     }
 
     @Test
+    fun failedToggleKeepsConfirmedStateAndEmitsError() = runTest {
+        model = MaterialViewModel("m", "anna", repository)
+        runCurrent()
+        val confirmed = model.uiState.value
+        repository.failOnSave = true
+        model.toggleCompleted()
+        runCurrent()
+        assertEquals(confirmed, model.uiState.value)
+        assertEquals(Unit, model.saveErrors.first())
+    }
+
+    @Test
     fun missingMaterialEndsLoading() = runTest {
         model = MaterialViewModel("missing", "anna", repository)
         runCurrent()
@@ -59,6 +72,7 @@ class MaterialViewModelTest {
 }
 
 internal class FakeMaterialRepository : MaterialRepository {
+    var failOnSave = false
     val lesson = Material("m", "1", "Lekcja", MaterialType.TEXT, false, false, "Treść lekcji")
     val completed = MutableStateFlow(emptySet<Pair<String, String>>())
 
@@ -72,6 +86,7 @@ internal class FakeMaterialRepository : MaterialRepository {
         observeMaterial(lesson.id, userId).map { listOfNotNull(it).filter { row -> row.courseId == courseId } }
 
     override suspend fun setCompleted(userId: String, materialId: String, completed: Boolean) {
+        check(!failOnSave)
         val key = userId to materialId
         if (completed) this.completed.value += key else this.completed.value -= key
     }

@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,6 +38,8 @@ class CourseDetailViewModel(
     quizzes: QuizRepository
 ) : ViewModel() {
     private val materials = materialRepository.observeMaterials(courseId, userId)
+    private val errors = Channel<Unit>(Channel.BUFFERED)
+    val saveErrors = errors.receiveAsFlow()
     private val completionLock = Mutex()
     val uiState = combine(courses.observeCourse(courseId), materials, quizzes.observeQuizzes(courseId)) { course, rows, tests ->
         CourseDetailUiState(course, rows, tests, rows.count { it.isCompleted }, rows.size,
@@ -43,9 +48,15 @@ class CourseDetailViewModel(
 
     fun toggleCompleted(materialId: String) {
         viewModelScope.launch {
-            completionLock.withLock {
-                val material = materials.first().find { it.id == materialId } ?: return@withLock
-                materialRepository.setCompleted(userId, materialId, !material.isCompleted)
+            try {
+                completionLock.withLock {
+                    val material = materials.first().find { it.id == materialId } ?: return@withLock
+                    materialRepository.setCompleted(userId, materialId, !material.isCompleted)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                errors.send(Unit)
             }
         }
     }

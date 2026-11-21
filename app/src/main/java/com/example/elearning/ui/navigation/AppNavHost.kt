@@ -107,6 +107,7 @@ fun AppNavHost() {
             val detailState by detail.uiState.collectAsStateWithLifecycle()
             CourseDetailScreen(
                 uiState = detailState,
+                saveErrors = detail.saveErrors,
                 onBack = { if (nav.currentBackStackEntry == entry && nav.previousBackStackEntry != null) nav.popBackStack() },
                 onToggleCompleted = detail::toggleCompleted,
                 onMaterialClick = { nav.navigate(Routes.material(it)) },
@@ -122,6 +123,7 @@ fun AppNavHost() {
             val materialState by model.uiState.collectAsStateWithLifecycle()
             MaterialScreen(
                 uiState = materialState,
+                saveErrors = model.saveErrors,
                 onToggleCompleted = model::toggleCompleted,
                 onBack = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
             )
@@ -130,7 +132,7 @@ fun AppNavHost() {
             val quizId = requireNotNull(entry.arguments?.getString("quizId"))
             val model: QuizViewModel = viewModel(viewModelStoreOwner = entry, factory = remember(quizId) {
                 QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository,
-                    container.quizResultSyncer, container.applicationScope)
+                    container.quizResultSyncer, container.applicationScope) { auth.uiState.value.user?.uid }
             })
             val quiz by model.uiState.collectAsStateWithLifecycle()
             var confirmExit by rememberSaveable { mutableStateOf(false) }
@@ -144,7 +146,7 @@ fun AppNavHost() {
                 onPrevious = model::previous,
                 onNext = model::next,
                 onFinish = {
-                    model.finish(auth.uiState.value.user?.uid)
+                    model.finish()
                     if (model.uiState.value.outcome != null && nav.currentBackStackEntry == entry) {
                         nav.navigate(Routes.quizResult(quizId))
                     }
@@ -159,7 +161,7 @@ fun AppNavHost() {
             val quizEntry = remember(entry) { nav.getBackStackEntry(Routes.quiz(quizId)) }
             val model: QuizViewModel = viewModel(viewModelStoreOwner = quizEntry, factory = remember(quizId) {
                 QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository,
-                    container.quizResultSyncer, container.applicationScope)
+                    container.quizResultSyncer, container.applicationScope) { auth.uiState.value.user?.uid }
             })
             val quiz by model.uiState.collectAsStateWithLifecycle()
             val outcome = quiz.outcome
@@ -174,6 +176,8 @@ fun AppNavHost() {
             } else {
                 QuizResultScreen(
                     outcome = outcome,
+                    saveStatus = quiz.saveStatus,
+                    onRetrySave = model::retrySave,
                     review = remember(quiz.questions, outcome) { buildReview(quiz.questions, outcome) },
                     onRetry = {
                         if (nav.currentBackStackEntry == entry && nav.popBackStack(Routes.quiz(quizId), false)) {

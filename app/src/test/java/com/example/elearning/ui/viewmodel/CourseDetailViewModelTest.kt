@@ -67,6 +67,18 @@ class CourseDetailViewModelTest {
     }
 
     @Test
+    fun failedToggleKeepsConfirmedStateAndEmitsError() = runTest {
+        open("1")
+        runCurrent()
+        val confirmed = model.uiState.value
+        completions.failOnSave = true
+        model.toggleCompleted("a")
+        runCurrent()
+        assertEquals(confirmed, model.uiState.value)
+        assertEquals(Unit, model.saveErrors.first())
+    }
+
+    @Test
     fun missingCourseEndsLoading() = runTest {
         open("missing")
         runCurrent()
@@ -90,11 +102,13 @@ private class FakeMaterials : MaterialDao {
 }
 
 private class FakeCompletions : CompletedMaterialDao {
+    var failOnSave = false
     private val keys = MutableStateFlow(emptySet<Pair<String, String>>())
     override fun observeCompletedIds(userId: String) = keys.map { entries ->
         entries.filter { it.first == userId }.map { it.second }
     }
     override suspend fun markCompleted(entity: CompletedMaterialEntity): Long {
+        check(!failOnSave)
         keys.value += entity.userId to entity.materialId
         return 1
     }

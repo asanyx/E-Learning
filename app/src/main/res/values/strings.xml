@@ -90,4 +90,7 @@
     <string name="progress_score">%1$d z %2$d (%3$d%%)</string>
     <string name="progress_unknown_quiz">Nieznany quiz</string>
     <string name="progress_unknown_course">Nieznany kurs</string>
+    <string name="quiz_save_failed">Nie udało się zapisać wyniku w historii.</string>
+    <string name="quiz_new_attempt">Rozwiąż ponownie</string>
+    <string name="completion_save_failed">Nie udało się zapisać zmiany</string>
 </resources>
