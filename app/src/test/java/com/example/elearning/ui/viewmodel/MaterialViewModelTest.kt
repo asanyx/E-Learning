@@ -58,13 +58,15 @@ class MaterialViewModelTest {
     }
 }
 
-private class FakeMaterialRepository : MaterialRepository {
-    val lesson = Material("m", "kurs", "Lekcja", MaterialType.TEXT, false, false, "Treść lekcji")
+internal class FakeMaterialRepository : MaterialRepository {
+    val lesson = Material("m", "1", "Lekcja", MaterialType.TEXT, false, false, "Treść lekcji")
     val completed = MutableStateFlow(emptySet<Pair<String, String>>())
 
     override fun observeMaterial(materialId: String, userId: String) = completed.map { ids ->
         lesson.takeIf { it.id == materialId }?.copy(isCompleted = (userId to materialId) in ids)
     }
+
+    override fun observeAllMaterials(userId: String) = observeMaterials(lesson.courseId, userId)
 
     override fun observeMaterials(courseId: String, userId: String) =
         observeMaterial(lesson.id, userId).map { listOfNotNull(it).filter { row -> row.courseId == courseId } }

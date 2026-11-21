@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface QuizDao {
+    @Query("SELECT * FROM quizzes")
+    fun observeAll(): Flow<List<QuizEntity>>
+
     @Query("SELECT * FROM quizzes WHERE courseId = :courseId")
     fun observeByCourse(courseId: String): Flow<List<QuizEntity>>
 

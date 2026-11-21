@@ -81,6 +81,7 @@ private class FakeMaterials : MaterialDao {
         MaterialEntity("b", "1", "Dokument", "PDF", ""),
         MaterialEntity("outside", "2", "Film", "VIDEO", "")
     )
+    override fun observeAll() = flowOf(rows)
     override fun observeByCourse(courseId: String) = flowOf(rows.filter { it.courseId == courseId })
     override fun observeById(id: String) = flowOf(rows.find { it.id == id })
     override suspend fun insertAll(list: List<MaterialEntity>): List<Long> = error("unused")

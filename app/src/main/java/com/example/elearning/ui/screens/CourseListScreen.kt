@@ -28,7 +28,9 @@ fun CourseListScreen(
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.courses_title), Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
-            TextButton(onClick = onProgress) { Text(stringResource(R.string.courses_progress)) }
+            IconButton(onClick = onProgress) {
+                Icon(painterResource(R.drawable.ic_progress), stringResource(R.string.progress_title))
+            }
             IconButton(onClick = onProfile) {
                 Icon(painterResource(R.drawable.ic_profile), stringResource(R.string.profile_title))
             }

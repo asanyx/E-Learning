@@ -12,6 +12,7 @@ internal class FakeQuizRepository : QuizRepository {
         QuizQuestion("b", "Drugie?", listOf("A", "B"), 1)
     )
 
+    override fun observeAllQuizzes() = flowOf(listOf(quiz))
     override fun observeQuizzes(courseId: String) = flowOf(listOf(quiz).filter { it.courseId == courseId })
     override suspend fun getQuiz(quizId: String) = quiz.takeIf { it.id == quizId }
     override suspend fun getQuestions(quizId: String) = if (quizId == quiz.id) questions else emptyList()

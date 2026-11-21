@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MaterialDao {
+    @Query("SELECT * FROM materials")
+    fun observeAll(): Flow<List<MaterialEntity>>
+
     @Query("SELECT * FROM materials WHERE courseId = :courseId")
     fun observeByCourse(courseId: String): Flow<List<MaterialEntity>>
 

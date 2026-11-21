@@ -6,14 +6,20 @@ import com.example.elearning.data.local.entity.CompletedMaterialEntity
 import com.example.elearning.data.local.entity.MaterialEntity
 import com.example.elearning.domain.model.Material
 import com.example.elearning.domain.model.MaterialType
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 class RoomMaterialRepository(
     private val materials: MaterialDao,
     private val completions: CompletedMaterialDao
 ) : MaterialRepository {
+    override fun observeAllMaterials(userId: String) = withCompletions(materials.observeAll(), userId)
+
     override fun observeMaterials(courseId: String, userId: String) =
-        combine(materials.observeByCourse(courseId), completions.observeCompletedIds(userId)) { rows, ids ->
+        withCompletions(materials.observeByCourse(courseId), userId)
+
+    private fun withCompletions(source: Flow<List<MaterialEntity>>, userId: String) =
+        combine(source, completions.observeCompletedIds(userId)) { rows, ids ->
             val completed = ids.toSet()
             rows.map { it.toMaterial(it.id in completed) }
         }

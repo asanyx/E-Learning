@@ -17,6 +17,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.platform.LocalContext
 import com.example.elearning.ElearningApp
 import com.example.elearning.ui.viewmodel.CourseListViewModel
+import com.example.elearning.ui.viewmodel.ProgressViewModel
 import com.example.elearning.ui.viewmodel.MaterialViewModel
 import com.example.elearning.ui.viewmodel.CourseDetailViewModel
 import com.example.elearning.ui.viewmodel.AuthViewModel
@@ -106,7 +107,7 @@ fun AppNavHost() {
             val detailState by detail.uiState.collectAsStateWithLifecycle()
             CourseDetailScreen(
                 uiState = detailState,
-                onBack = { nav.popBackStack(Routes.CourseList, inclusive = false) },
+                onBack = { if (nav.currentBackStackEntry == entry && nav.previousBackStackEntry != null) nav.popBackStack() },
                 onToggleCompleted = detail::toggleCompleted,
                 onMaterialClick = { nav.navigate(Routes.material(it)) },
                 onQuizClick = { nav.navigate(Routes.quiz(it)) }
@@ -181,10 +182,20 @@ fun AppNavHost() {
                 )
             }
         }
-        composable(Routes.Progress) {
-            ProgressScreen(
-                onProfile = { nav.navigate(Routes.Profile) }
-            )
+        composable(Routes.Progress) { entry ->
+            val userId = state.user?.uid ?: return@composable
+            key(userId) {
+                val model: ProgressViewModel = viewModel(key = userId, factory = remember(userId) {
+                    ProgressViewModel.Factory(userId, container.courseRepository, container.materialRepository,
+                        container.quizRepository, container.quizResultRepository)
+                })
+                val progress by model.uiState.collectAsStateWithLifecycle()
+                ProgressScreen(
+                    state = progress,
+                    onBack = { if (nav.currentBackStackEntry == entry) nav.popBackStack(Routes.CourseList, false) },
+                    onCourseClick = { nav.navigate(Routes.course(it)) }
+                )
+            }
         }
         composable(Routes.Profile) {
             val user = state.user ?: return@composable

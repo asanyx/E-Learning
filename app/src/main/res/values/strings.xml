@@ -79,4 +79,15 @@
     <string name="quiz_unavailable">Brak danych</string>
     <string name="quiz_retry">Spróbuj ponownie</string>
     <string name="quiz_return">Wróć do kursu</string>
+    <string name="progress_title">Moje postępy</string>
+    <string name="progress_history">Historia wyników</string>
+    <string name="progress_empty">Nie masz jeszcze żadnych wyników</string>
+    <string name="progress_materials">Materiały: %1$d z %2$d</string>
+    <string name="progress_quizzes">Quizy: %1$d z %2$d</string>
+    <string name="progress_percent">%1$d%%</string>
+    <string name="progress_completed">Ukończony</string>
+    <string name="progress_best">%1$s — najlepszy wynik: %2$d%%</string>
+    <string name="progress_score">%1$d z %2$d (%3$d%%)</string>
+    <string name="progress_unknown_quiz">Nieznany quiz</string>
+    <string name="progress_unknown_course">Nieznany kurs</string>
 </resources>

@@ -16,6 +16,8 @@ class RoomQuizRepository(private val dao: QuizDao) : QuizRepository {
         QuizQuestion(it.id, it.text, it.options, it.correctIndex)
     }
 
+    override fun observeAllQuizzes() = dao.observeAll().map { rows -> rows.map { it.toQuiz() } }
+
     override fun observeQuizzes(courseId: String) = dao.observeByCourse(courseId).map { rows ->
         rows.map { it.toQuiz() }
     }
