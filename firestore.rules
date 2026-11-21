@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pozostałe ścieżki są domyślnie zamknięte.
+    match /users/{userId}/quizResults/{resultId} {
+      // UID zalogowanego użytkownika musi odpowiadać właścicielowi ze ścieżki.
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Sprawdzamy pełny dokument po zapisie, także przy aktualizacji.
+      function isValidResult() {
+        let data = request.resource.data;
+        let fields = ['quizId', 'correctCount', 'total', 'percent', 'passed', 'completedAt'];
+        return data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+            && data.quizId is string && data.quizId.size() > 0 && data.quizId.size() <= 128
+            && data.total is int && data.total >= 0
+            && data.correctCount is int && data.correctCount >= 0 && data.correctCount <= data.total
+            && data.percent is int && data.percent >= 0 && data.percent <= 100
+            && data.passed is bool
+            && data.completedAt is int && data.completedAt > 0
+            && resultId == data.quizId + '_' + string(data.completedAt);
+      }
+
+      // Właściciel może odczytać dokument lub listę swoich wyników.
+      allow read: if isOwner();
+
+      // Pierwszy i ponowny zapis wyniku podlegają tej samej walidacji.
+      allow create, update: if isOwner() && isValidResult();
+
+      // Usunięcie wyniku jest zabronione również właścicielowi.
+      allow delete: if false;
+    }
+  }
+}
