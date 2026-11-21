@@ -18,6 +18,11 @@ class RoomMaterialRepository(
             rows.map { it.toMaterial(it.id in completed) }
         }
 
+    override fun observeMaterial(materialId: String, userId: String) =
+        combine(materials.observeById(materialId), completions.observeCompletedIds(userId)) { row, ids ->
+            row?.toMaterial(materialId in ids)
+        }
+
     override suspend fun setCompleted(userId: String, materialId: String, completed: Boolean) {
         if (completed) {
             completions.markCompleted(CompletedMaterialEntity(userId, materialId, System.currentTimeMillis()))
@@ -28,6 +33,6 @@ class RoomMaterialRepository(
 
     private fun MaterialEntity.toMaterial(completed: Boolean) = Material(
         id, courseId, title, MaterialType.entries.find { it.name == type } ?: MaterialType.TEXT,
-        isDownloaded, completed
+        isDownloaded, completed, contentUrl, localPath
     )
 }

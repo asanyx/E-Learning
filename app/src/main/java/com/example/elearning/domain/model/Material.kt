@@ -8,5 +8,7 @@ data class Material(
     val title: String,
     val type: MaterialType,
     val isDownloaded: Boolean,
-    val isCompleted: Boolean
+    val isCompleted: Boolean,
+    val contentUrl: String = "",
+    val localPath: String? = null
 )

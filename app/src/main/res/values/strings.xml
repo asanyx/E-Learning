@@ -47,4 +47,12 @@
     <string name="detail_video">Wideo</string>
     <string name="detail_downloaded">Pobrany</string>
     <string name="detail_completion">Ukończenie materiału: %1$s</string>
+    <string name="material_title">Materiał</string>
+    <string name="material_missing">Nie znaleziono materiału</string>
+    <string name="material_pdf">Otwórz w przeglądarce / czytniku</string>
+    <string name="material_video">Otwórz wideo</string>
+    <string name="material_no_app">Brak aplikacji do otwarcia pliku</string>
+    <string name="material_invalid_link">Brak poprawnego linku do materiału</string>
+    <string name="material_mark">Oznacz jako ukończony</string>
+    <string name="material_unmark">Cofnij oznaczenie ukończenia</string>
 </resources>

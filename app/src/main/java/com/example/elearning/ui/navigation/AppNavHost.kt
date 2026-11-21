@@ -13,6 +13,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.platform.LocalContext
 import com.example.elearning.ElearningApp
 import com.example.elearning.ui.viewmodel.CourseListViewModel
+import com.example.elearning.ui.viewmodel.MaterialViewModel
 import com.example.elearning.ui.viewmodel.CourseDetailViewModel
 import com.example.elearning.ui.viewmodel.AuthViewModel
 import androidx.compose.ui.Modifier
@@ -108,9 +109,16 @@ fun AppNavHost() {
             )
         }
         composable(Routes.Material, arguments = listOf(navArgument("materialId") { type = NavType.StringType })) { entry ->
+            val userId = state.user?.uid ?: return@composable
+            val materialId = requireNotNull(entry.arguments?.getString("materialId"))
+            val model: MaterialViewModel = viewModel(key = userId, factory = remember(materialId, userId) {
+                MaterialViewModel.Factory(materialId, userId, container.materialRepository)
+            })
+            val materialState by model.uiState.collectAsStateWithLifecycle()
             MaterialScreen(
-                materialId = requireNotNull(entry.arguments?.getString("materialId")),
-                onQuiz = { nav.navigate(Routes.quiz(it)) }
+                uiState = materialState,
+                onToggleCompleted = model::toggleCompleted,
+                onBack = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
             )
         }
         composable(Routes.Quiz, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
