@@ -5,10 +5,8 @@ import com.example.elearning.data.local.dao.CompletedMaterialDao
 import com.example.elearning.data.local.dao.MaterialDao
 import com.example.elearning.data.local.entity.CompletedMaterialEntity
 import com.example.elearning.data.local.entity.MaterialEntity
-import com.example.elearning.data.repository.QuizRepository
 import com.example.elearning.data.repository.RoomMaterialRepository
 import com.example.elearning.domain.model.MaterialType
-import com.example.elearning.domain.model.Quiz
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,9 +21,7 @@ import org.junit.Test
 class CourseDetailViewModelTest {
     private val courses = FakeCourseRepository()
     private val completions = FakeCompletions()
-    private val quizzes = object : QuizRepository {
-        override fun observeQuizzes(courseId: String) = flowOf(listOf(Quiz("q", courseId, "Quiz", 60)))
-    }
+    private val quizzes = FakeQuizRepository()
     private lateinit var model: CourseDetailViewModel
 
     @Before

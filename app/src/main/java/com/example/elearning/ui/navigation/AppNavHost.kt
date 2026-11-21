@@ -1,5 +1,8 @@
 package com.example.elearning.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import com.example.elearning.ui.screens.QuitQuizDialog
+import com.example.elearning.ui.viewmodel.QuizViewModel
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -122,16 +125,46 @@ fun AppNavHost() {
             )
         }
         composable(Routes.Quiz, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
+            val quizId = requireNotNull(entry.arguments?.getString("quizId"))
+            val model: QuizViewModel = viewModel(viewModelStoreOwner = entry, factory = remember(quizId) {
+                QuizViewModel.Factory(quizId, container.quizRepository)
+            })
+            val quiz by model.uiState.collectAsStateWithLifecycle()
+            var confirmExit by rememberSaveable { mutableStateOf(false) }
+            val active = quiz.currentQuestion != null && quiz.outcome == null
+            val leave: () -> Unit = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
+            BackHandler(enabled = active) { confirmExit = true }
             QuizScreen(
-                quizId = requireNotNull(entry.arguments?.getString("quizId")),
-                onQuizResult = { nav.navigate(Routes.quizResult(it)) }
+                state = quiz,
+                onBack = { if (active) confirmExit = true else leave() },
+                onAnswer = model::selectAnswer,
+                onPrevious = model::previous,
+                onNext = model::next,
+                onFinish = {
+                    model.finish()
+                    if (model.uiState.value.outcome != null && nav.currentBackStackEntry == entry) {
+                        nav.navigate(Routes.quizResult(quizId))
+                    }
+                }
             )
+            if (confirmExit && active) {
+                QuitQuizDialog(onQuit = leave, onStay = { confirmExit = false })
+            }
         }
         composable(Routes.QuizResult, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
-            QuizResultScreen(
-                quizId = requireNotNull(entry.arguments?.getString("quizId")),
-                onProgress = { nav.navigate(Routes.Progress) }
-            )
+            val quizId = requireNotNull(entry.arguments?.getString("quizId"))
+            val quizEntry = remember(entry) { nav.getBackStackEntry(Routes.quiz(quizId)) }
+            val model: QuizViewModel = viewModel(viewModelStoreOwner = quizEntry, factory = remember(quizId) {
+                QuizViewModel.Factory(quizId, container.quizRepository)
+            })
+            val quiz by model.uiState.collectAsStateWithLifecycle()
+            val outcome = quiz.outcome
+            if (outcome != null) {
+                QuizResultScreen(outcome.percent)
+                BackHandler { nav.popBackStack(Routes.quiz(quizId), inclusive = true) }
+            } else {
+                LaunchedEffect(entry) { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
+            }
         }
         composable(Routes.Progress) {
             ProgressScreen(

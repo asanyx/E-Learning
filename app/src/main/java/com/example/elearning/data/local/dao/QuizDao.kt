@@ -16,7 +16,7 @@ interface QuizDao {
     @Query("SELECT * FROM quizzes WHERE id = :id")
     fun getQuiz(id: String): Flow<QuizEntity?>
 
-    @Query("SELECT * FROM questions WHERE quizId = :quizId")
+    @Query("SELECT * FROM questions WHERE quizId = :quizId ORDER BY id")
     suspend fun getQuestions(quizId: String): List<QuestionEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

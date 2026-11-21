@@ -55,4 +55,16 @@
     <string name="material_invalid_link">Brak poprawnego linku do materiału</string>
     <string name="material_mark">Oznacz jako ukończony</string>
     <string name="material_unmark">Cofnij oznaczenie ukończenia</string>
+    <string name="quiz_title">Quiz</string>
+    <string name="quiz_missing">Nie znaleziono quizu</string>
+    <string name="quiz_empty">Ten quiz nie ma jeszcze pytań</string>
+    <string name="quiz_position">Pytanie %1$d z %2$d</string>
+    <string name="quiz_next">Dalej</string>
+    <string name="quiz_previous">Poprzednie</string>
+    <string name="quiz_finish">Zakończ</string>
+    <string name="quiz_quit">Przerwać quiz?</string>
+    <string name="quiz_lose_progress">Postęp zostanie utracony</string>
+    <string name="quiz_yes">Tak</string>
+    <string name="quiz_no">Nie</string>
+    <string name="quiz_result_percent">Wynik: %1$d%%</string>
 </resources>
