@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.elearning.data.repository.QuizRepository
 import com.example.elearning.data.repository.QuizResultRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
+import com.example.elearning.data.repository.QuizResultSyncer
 import com.example.elearning.domain.quiz.QuizOutcome
 import com.example.elearning.domain.quiz.QuizQuestion
 import com.example.elearning.domain.quiz.QuizScorer
@@ -32,7 +34,9 @@ data class QuizUiState(
 class QuizViewModel(
     private val quizId: String,
     repository: QuizRepository,
-    private val results: QuizResultRepository
+    private val results: QuizResultRepository,
+    private val syncer: QuizResultSyncer,
+    private val applicationScope: CoroutineScope
 ) : ViewModel() {
     private val state = MutableStateFlow(QuizUiState())
     val uiState = state.asStateFlow()
@@ -72,9 +76,10 @@ class QuizViewModel(
         if (!state.compareAndSet(current, current.copy(outcome = outcome)) || userId.isNullOrBlank()) return
 
         val completedAt = System.currentTimeMillis()
-        viewModelScope.launch {
+        applicationScope.launch {
             try {
                 results.saveResult(userId, quizId, outcome, completedAt)
+                syncer.syncAll(userId)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -88,11 +93,13 @@ class QuizViewModel(
     class Factory(
         private val quizId: String,
         private val repository: QuizRepository,
-        private val results: QuizResultRepository
+        private val results: QuizResultRepository,
+        private val syncer: QuizResultSyncer,
+        private val applicationScope: CoroutineScope
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(QuizViewModel::class.java))
-            return modelClass.cast(QuizViewModel(quizId, repository, results))!!
+            return modelClass.cast(QuizViewModel(quizId, repository, results, syncer, applicationScope))!!
         }
     }
 }

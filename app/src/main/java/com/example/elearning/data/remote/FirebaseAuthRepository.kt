@@ -4,15 +4,11 @@ import com.example.elearning.data.repository.AuthRepository
 import com.example.elearning.data.repository.AuthResult
 import com.example.elearning.domain.AuthError
 import com.example.elearning.domain.model.AuthUser
-import com.google.android.gms.tasks.Task
 import kotlinx.coroutines.CancellationException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class FirebaseAuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -60,16 +56,5 @@ class FirebaseAuthRepository(
             is FirebaseNetworkException -> AuthError.NETWORK
             else -> AuthError.UNKNOWN
         })
-    }
-}
-
-private suspend fun <T> Task<T>.awaitValue(): T = suspendCancellableCoroutine { continuation ->
-    addOnCompleteListener { task ->
-        val error = task.exception
-        when {
-            task.isCanceled -> continuation.cancel()
-            error != null -> continuation.resumeWithException(error)
-            else -> continuation.resume(task.result)
-        }
     }
 }

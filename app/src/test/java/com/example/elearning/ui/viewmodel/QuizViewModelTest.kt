@@ -1,6 +1,8 @@
 package com.example.elearning.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.elearning.data.remote.FakeRemoteResultsDataSource
+import com.example.elearning.data.repository.QuizResultSyncer
 import com.example.elearning.domain.model.QuizResult
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +18,8 @@ import org.junit.Test
 class QuizViewModelTest {
     private val repository = FakeQuizRepository()
     private val results = FakeQuizResultRepository()
+    private val remote = FakeRemoteResultsDataSource()
+    private val syncer = QuizResultSyncer(results, remote)
     private lateinit var model: QuizViewModel
 
     @Before
@@ -29,7 +33,7 @@ class QuizViewModelTest {
 
     @Test
     fun navigationPreservesAnswersAndRequiresValidSelection() = runTest {
-        model = QuizViewModel("q", repository, results)
+        model = QuizViewModel("q", repository, results, syncer, backgroundScope)
         assertTrue(model.uiState.value.isLoading)
         runCurrent()
         assertEquals(repository.questions, model.uiState.value.questions)
@@ -53,7 +57,7 @@ class QuizViewModelTest {
 
     @Test
     fun finishRequiresAllAnswersAndScoresOnceWithQuizThreshold() = runTest {
-        model = QuizViewModel("q", repository, results)
+        model = QuizViewModel("q", repository, results, syncer, backgroundScope)
         runCurrent()
         model.selectAnswer(0)
         model.finish("anna")
@@ -72,6 +76,7 @@ class QuizViewModelTest {
         assertSame(outcome, model.uiState.value.outcome)
         runCurrent()
         assertEquals(1, results.saveCalls)
+        assertEquals(results.observeResults("anna").first(), remote.uploads.single().second)
         val saved = results.observeResultsForQuiz("anna", "q").first().single()
         assertTrue(saved.completedAt in startedAt..System.currentTimeMillis())
         assertEquals(QuizResult(1, "anna", "q", 1, 2, 50, true, saved.completedAt), saved)
@@ -79,7 +84,7 @@ class QuizViewModelTest {
 
     @Test
     fun restartReturnsToFirstQuestionAndAllowsNewAttempt() = runTest {
-        model = QuizViewModel("q", repository, results)
+        model = QuizViewModel("q", repository, results, syncer, backgroundScope)
         runCurrent()
         val initial = model.uiState.value
         model.selectAnswer(0)
@@ -120,7 +125,7 @@ class QuizViewModelTest {
     }
 
     private fun TestScope.completeQuiz(userId: String?) {
-        model = QuizViewModel("q", repository, results)
+        model = QuizViewModel("q", repository, results, syncer, backgroundScope)
         runCurrent()
         model.selectAnswer(0)
         model.next()
@@ -131,7 +136,7 @@ class QuizViewModelTest {
     @Test
     fun emptyQuizCannotFinish() = runTest {
         repository.questions = emptyList()
-        model = QuizViewModel("q", repository, results)
+        model = QuizViewModel("q", repository, results, syncer, backgroundScope)
         runCurrent()
         model.finish("anna")
         assertFalse(model.uiState.value.notFound)
@@ -142,7 +147,7 @@ class QuizViewModelTest {
 
     @Test
     fun missingQuizEndsLoading() = runTest {
-        model = QuizViewModel("missing", repository, results)
+        model = QuizViewModel("missing", repository, results, syncer, backgroundScope)
         runCurrent()
         assertTrue(model.uiState.value.notFound)
         assertFalse(model.uiState.value.isLoading)
