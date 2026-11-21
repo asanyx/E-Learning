@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.platformae_learningowa"
+    namespace = "com.example.platformaELearningowa"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.platformae_learningowa"
+        applicationId = "com.example.platformaELearningowa"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

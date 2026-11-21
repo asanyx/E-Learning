@@ -1,4 +1,4 @@
-package com.example.platformae_learningowa.ui.theme
+package com.example.elearning.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
