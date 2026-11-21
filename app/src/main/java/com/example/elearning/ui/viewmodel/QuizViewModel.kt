@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.elearning.data.repository.QuizRepository
+import com.example.elearning.data.repository.QuizResultRepository
+import kotlinx.coroutines.CancellationException
 import com.example.elearning.domain.quiz.QuizOutcome
 import com.example.elearning.domain.quiz.QuizQuestion
 import com.example.elearning.domain.quiz.QuizScorer
@@ -27,7 +29,11 @@ data class QuizUiState(
     val answeredCount get() = answers.values.count { it != null }
 }
 
-class QuizViewModel(quizId: String, repository: QuizRepository) : ViewModel() {
+class QuizViewModel(
+    private val quizId: String,
+    repository: QuizRepository,
+    private val results: QuizResultRepository
+) : ViewModel() {
     private val state = MutableStateFlow(QuizUiState())
     val uiState = state.asStateFlow()
     private var threshold = 60
@@ -58,17 +64,35 @@ class QuizViewModel(quizId: String, repository: QuizRepository) : ViewModel() {
         if (it.outcome == null && it.currentIndex > 0) it.copy(currentIndex = it.currentIndex - 1) else it
     }
 
-    fun finish() = state.update {
-        if (it.outcome != null || it.questions.isEmpty() || it.answeredCount != it.questions.size) it
-        else it.copy(outcome = QuizScorer.score(it.questions, it.answers, threshold))
+    fun finish(userId: String?) {
+        val current = state.value
+        if (current.outcome != null || current.questions.isEmpty() || current.answeredCount != current.questions.size) return
+
+        val outcome = QuizScorer.score(current.questions, current.answers, threshold)
+        if (!state.compareAndSet(current, current.copy(outcome = outcome)) || userId.isNullOrBlank()) return
+
+        val completedAt = System.currentTimeMillis()
+        viewModelScope.launch {
+            try {
+                results.saveResult(userId, quizId, outcome, completedAt)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Wynik bieżącej próby pozostaje dostępny w pamięci po błędzie zapisu.
+            }
+        }
     }
 
     fun restart() = state.update { it.copy(currentIndex = 0, answers = emptyMap(), outcome = null) }
 
-    class Factory(private val quizId: String, private val repository: QuizRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val quizId: String,
+        private val repository: QuizRepository,
+        private val results: QuizResultRepository
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(QuizViewModel::class.java))
-            return modelClass.cast(QuizViewModel(quizId, repository))!!
+            return modelClass.cast(QuizViewModel(quizId, repository, results))!!
         }
     }
 }

@@ -128,7 +128,7 @@ fun AppNavHost() {
         composable(Routes.Quiz, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
             val quizId = requireNotNull(entry.arguments?.getString("quizId"))
             val model: QuizViewModel = viewModel(viewModelStoreOwner = entry, factory = remember(quizId) {
-                QuizViewModel.Factory(quizId, container.quizRepository)
+                QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository)
             })
             val quiz by model.uiState.collectAsStateWithLifecycle()
             var confirmExit by rememberSaveable { mutableStateOf(false) }
@@ -142,7 +142,7 @@ fun AppNavHost() {
                 onPrevious = model::previous,
                 onNext = model::next,
                 onFinish = {
-                    model.finish()
+                    model.finish(auth.uiState.value.user?.uid)
                     if (model.uiState.value.outcome != null && nav.currentBackStackEntry == entry) {
                         nav.navigate(Routes.quizResult(quizId))
                     }
@@ -156,7 +156,7 @@ fun AppNavHost() {
             val quizId = requireNotNull(entry.arguments?.getString("quizId"))
             val quizEntry = remember(entry) { nav.getBackStackEntry(Routes.quiz(quizId)) }
             val model: QuizViewModel = viewModel(viewModelStoreOwner = quizEntry, factory = remember(quizId) {
-                QuizViewModel.Factory(quizId, container.quizRepository)
+                QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository)
             })
             val quiz by model.uiState.collectAsStateWithLifecycle()
             val outcome = quiz.outcome

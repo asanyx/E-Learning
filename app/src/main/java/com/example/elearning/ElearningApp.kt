@@ -13,6 +13,9 @@ import com.example.elearning.data.local.AppDatabase
 import com.example.elearning.data.local.seedIfEmpty
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import com.example.elearning.data.repository.QuizResultRepository
+import com.example.elearning.data.repository.RoomQuizResultRepository
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class AppContainer(application: Application) {
@@ -20,6 +23,9 @@ class AppContainer(application: Application) {
     val courseRepository: CourseRepository = RoomCourseRepository(database.courseDao())
     val materialRepository: MaterialRepository = RoomMaterialRepository(database.materialDao(), database.completedMaterialDao())
     val quizRepository: QuizRepository = RoomQuizRepository(database.quizDao())
+    val quizResultRepository: QuizResultRepository = RoomQuizResultRepository(
+        database.quizResultDao(), CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    )
     val authRepository: AuthRepository by lazy { FirebaseAuthRepository() }
 }
 

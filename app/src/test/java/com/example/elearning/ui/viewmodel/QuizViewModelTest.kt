@@ -1,6 +1,8 @@
 package com.example.elearning.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.elearning.domain.model.QuizResult
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -13,6 +15,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class QuizViewModelTest {
     private val repository = FakeQuizRepository()
+    private val results = FakeQuizResultRepository()
     private lateinit var model: QuizViewModel
 
     @Before
@@ -26,7 +29,7 @@ class QuizViewModelTest {
 
     @Test
     fun navigationPreservesAnswersAndRequiresValidSelection() = runTest {
-        model = QuizViewModel("q", repository)
+        model = QuizViewModel("q", repository, results)
         assertTrue(model.uiState.value.isLoading)
         runCurrent()
         assertEquals(repository.questions, model.uiState.value.questions)
@@ -50,45 +53,87 @@ class QuizViewModelTest {
 
     @Test
     fun finishRequiresAllAnswersAndScoresOnceWithQuizThreshold() = runTest {
-        model = QuizViewModel("q", repository)
+        model = QuizViewModel("q", repository, results)
         runCurrent()
         model.selectAnswer(0)
-        model.finish()
+        model.finish("anna")
         assertNull(model.uiState.value.outcome)
+        runCurrent()
+        assertEquals(0, results.saveCalls)
         model.next()
         model.selectAnswer(0)
-        model.finish()
+        val startedAt = System.currentTimeMillis()
+        model.finish("anna")
         val outcome = requireNotNull(model.uiState.value.outcome)
         assertEquals(50, outcome.percent)
         assertTrue(outcome.passed)
         model.selectAnswer(1)
-        model.finish()
+        model.finish("anna")
         assertSame(outcome, model.uiState.value.outcome)
+        runCurrent()
+        assertEquals(1, results.saveCalls)
+        val saved = results.observeResultsForQuiz("anna", "q").first().single()
+        assertTrue(saved.completedAt in startedAt..System.currentTimeMillis())
+        assertEquals(QuizResult(1, "anna", "q", 1, 2, 50, true, saved.completedAt), saved)
     }
 
     @Test
     fun restartReturnsToFirstQuestionAndAllowsNewAttempt() = runTest {
-        model = QuizViewModel("q", repository)
+        model = QuizViewModel("q", repository, results)
         runCurrent()
         val initial = model.uiState.value
         model.selectAnswer(0)
         model.next()
         model.selectAnswer(1)
-        model.finish()
+        model.finish("anna")
         assertNotNull(model.uiState.value.outcome)
 
         model.restart()
         assertEquals(initial, model.uiState.value)
         model.selectAnswer(1)
         assertTrue(model.uiState.value.canGoNext)
+        model.next()
+        model.selectAnswer(0)
+        model.finish("anna")
+        runCurrent()
+        assertEquals(2, results.saveCalls)
+        assertEquals(listOf(0, 100), results.observeResults("anna").first().map { it.percent })
+    }
+
+    @Test
+    fun failedSaveKeepsOutcomeAndDoesNotRetryOnRepeatedFinish() = runTest {
+        results.failOnSave = true
+        completeQuiz("anna")
+        runCurrent()
+        assertEquals(100, model.uiState.value.outcome?.percent)
+        model.finish("anna")
+        runCurrent()
+        assertEquals(1, results.saveCalls)
+    }
+
+    @Test
+    fun anonymousFinishShowsOutcomeWithoutSaving() = runTest {
+        completeQuiz(null)
+        runCurrent()
+        assertEquals(100, model.uiState.value.outcome?.percent)
+        assertEquals(0, results.saveCalls)
+    }
+
+    private fun TestScope.completeQuiz(userId: String?) {
+        model = QuizViewModel("q", repository, results)
+        runCurrent()
+        model.selectAnswer(0)
+        model.next()
+        model.selectAnswer(1)
+        model.finish(userId)
     }
 
     @Test
     fun emptyQuizCannotFinish() = runTest {
         repository.questions = emptyList()
-        model = QuizViewModel("q", repository)
+        model = QuizViewModel("q", repository, results)
         runCurrent()
-        model.finish()
+        model.finish("anna")
         assertFalse(model.uiState.value.notFound)
         assertFalse(model.uiState.value.isLoading)
         assertNull(model.uiState.value.currentQuestion)
@@ -97,7 +142,7 @@ class QuizViewModelTest {
 
     @Test
     fun missingQuizEndsLoading() = runTest {
-        model = QuizViewModel("missing", repository)
+        model = QuizViewModel("missing", repository, results)
         runCurrent()
         assertTrue(model.uiState.value.notFound)
         assertFalse(model.uiState.value.isLoading)
