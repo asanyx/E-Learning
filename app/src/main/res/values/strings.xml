@@ -35,4 +35,16 @@
     <string name="courses_all">Wszystkie</string>
     <string name="courses_empty">Brak kursów pasujących do wyszukiwania</string>
     <string name="courses_progress">Postępy</string>
+    <string name="detail_title">Szczegóły kursu</string>
+    <string name="detail_missing">Nie znaleziono kursu</string>
+    <string name="detail_progress">Ukończone %1$d z %2$d materiałów</string>
+    <string name="detail_materials">Materiały</string>
+    <string name="detail_quizzes">Quizy</string>
+    <string name="detail_no_materials">Brak materiałów</string>
+    <string name="detail_no_quizzes">Brak quizów</string>
+    <string name="detail_text">Tekst</string>
+    <string name="detail_pdf">PDF</string>
+    <string name="detail_video">Wideo</string>
+    <string name="detail_downloaded">Pobrany</string>
+    <string name="detail_completion">Ukończenie materiału: %1$s</string>
 </resources>

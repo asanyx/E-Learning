@@ -2,6 +2,10 @@ package com.example.elearning
 
 import android.app.Application
 import com.example.elearning.data.remote.FirebaseAuthRepository
+import com.example.elearning.data.repository.MaterialRepository
+import com.example.elearning.data.repository.QuizRepository
+import com.example.elearning.data.repository.RoomMaterialRepository
+import com.example.elearning.data.repository.RoomQuizRepository
 import com.example.elearning.data.repository.AuthRepository
 import com.example.elearning.data.repository.CourseRepository
 import com.example.elearning.data.repository.RoomCourseRepository
@@ -14,6 +18,8 @@ import kotlinx.coroutines.launch
 class AppContainer(application: Application) {
     val database = AppDatabase.getInstance(application)
     val courseRepository: CourseRepository = RoomCourseRepository(database.courseDao())
+    val materialRepository: MaterialRepository = RoomMaterialRepository(database.materialDao(), database.completedMaterialDao())
+    val quizRepository: QuizRepository = RoomQuizRepository(database.quizDao())
     val authRepository: AuthRepository by lazy { FirebaseAuthRepository() }
 }
 

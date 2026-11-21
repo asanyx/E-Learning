@@ -13,6 +13,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.platform.LocalContext
 import com.example.elearning.ElearningApp
 import com.example.elearning.ui.viewmodel.CourseListViewModel
+import com.example.elearning.ui.viewmodel.CourseDetailViewModel
 import com.example.elearning.ui.viewmodel.AuthViewModel
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -32,7 +33,6 @@ import com.example.elearning.ui.screens.ProfileScreen
 
 @Composable
 fun AppNavHost() {
-    val nav = rememberNavController()
     val container = (LocalContext.current.applicationContext as ElearningApp).container
     val factory = remember { AuthViewModel.Factory(container.authRepository) }
     val auth: AuthViewModel = viewModel(factory = factory)
@@ -43,6 +43,7 @@ fun AppNavHost() {
         }
         return
     }
+    val nav = rememberNavController()
     val startDestination = rememberSaveable {
         if (state.user == null) Routes.Login else Routes.CourseList
     }
@@ -91,9 +92,19 @@ fun AppNavHost() {
             )
         }
         composable(Routes.CourseDetail, arguments = listOf(navArgument("courseId") { type = NavType.StringType })) { entry ->
+            val userId = state.user?.uid ?: return@composable
+            val courseId = requireNotNull(entry.arguments?.getString("courseId"))
+            val detail: CourseDetailViewModel = viewModel(key = userId, factory = remember(courseId, userId) {
+                CourseDetailViewModel.Factory(courseId, userId, container.courseRepository,
+                    container.materialRepository, container.quizRepository)
+            })
+            val detailState by detail.uiState.collectAsStateWithLifecycle()
             CourseDetailScreen(
-                courseId = requireNotNull(entry.arguments?.getString("courseId")),
-                onMaterial = { nav.navigate(Routes.material(it)) }
+                uiState = detailState,
+                onBack = { nav.popBackStack(Routes.CourseList, inclusive = false) },
+                onToggleCompleted = detail::toggleCompleted,
+                onMaterialClick = { nav.navigate(Routes.material(it)) },
+                onQuizClick = { nav.navigate(Routes.quiz(it)) }
             )
         }
         composable(Routes.Material, arguments = listOf(navArgument("materialId") { type = NavType.StringType })) { entry ->
