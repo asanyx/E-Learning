@@ -67,6 +67,23 @@ class QuizViewModelTest {
     }
 
     @Test
+    fun restartReturnsToFirstQuestionAndAllowsNewAttempt() = runTest {
+        model = QuizViewModel("q", repository)
+        runCurrent()
+        val initial = model.uiState.value
+        model.selectAnswer(0)
+        model.next()
+        model.selectAnswer(1)
+        model.finish()
+        assertNotNull(model.uiState.value.outcome)
+
+        model.restart()
+        assertEquals(initial, model.uiState.value)
+        model.selectAnswer(1)
+        assertTrue(model.uiState.value.canGoNext)
+    }
+
+    @Test
     fun emptyQuizCannotFinish() = runTest {
         repository.questions = emptyList()
         model = QuizViewModel("q", repository)

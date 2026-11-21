@@ -63,6 +63,8 @@ class QuizViewModel(quizId: String, repository: QuizRepository) : ViewModel() {
         else it.copy(outcome = QuizScorer.score(it.questions, it.answers, threshold))
     }
 
+    fun restart() = state.update { it.copy(currentIndex = 0, answers = emptyMap(), outcome = null) }
+
     class Factory(private val quizId: String, private val repository: QuizRepository) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(QuizViewModel::class.java))

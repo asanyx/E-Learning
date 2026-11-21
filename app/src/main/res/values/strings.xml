@@ -67,4 +67,16 @@
     <string name="quiz_yes">Tak</string>
     <string name="quiz_no">Nie</string>
     <string name="quiz_result_percent">Wynik: %1$d%%</string>
+    <string name="quiz_result_title">Wynik quizu</string>
+    <string name="quiz_result_count">%1$d z %2$d poprawnych</string>
+    <string name="quiz_passed">Zaliczony</string>
+    <string name="quiz_failed">Niezaliczony</string>
+    <string name="quiz_correct">Poprawnie</string>
+    <string name="quiz_incorrect">Błędnie</string>
+    <string name="quiz_selected">Twoja odpowiedź: %1$s</string>
+    <string name="quiz_correct_answer">Poprawna odpowiedź: %1$s</string>
+    <string name="quiz_no_answer">Brak odpowiedzi</string>
+    <string name="quiz_unavailable">Brak danych</string>
+    <string name="quiz_retry">Spróbuj ponownie</string>
+    <string name="quiz_return">Wróć do kursu</string>
 </resources>

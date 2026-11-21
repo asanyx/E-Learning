@@ -1,6 +1,7 @@
 package com.example.elearning.ui.navigation
 
 import androidx.activity.compose.BackHandler
+import com.example.elearning.domain.quiz.buildReview
 import com.example.elearning.ui.screens.QuitQuizDialog
 import com.example.elearning.ui.viewmodel.QuizViewModel
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -159,11 +160,25 @@ fun AppNavHost() {
             })
             val quiz by model.uiState.collectAsStateWithLifecycle()
             val outcome = quiz.outcome
-            if (outcome != null) {
-                QuizResultScreen(outcome.percent)
-                BackHandler { nav.popBackStack(Routes.quiz(quizId), inclusive = true) }
+            val returnToCourse: () -> Unit = {
+                if (nav.currentBackStackEntry == entry) {
+                    nav.popBackStack(Routes.CourseDetail, inclusive = false)
+                }
+            }
+            BackHandler(onBack = returnToCourse)
+            if (outcome == null) {
+                LaunchedEffect(entry) { returnToCourse() }
             } else {
-                LaunchedEffect(entry) { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
+                QuizResultScreen(
+                    outcome = outcome,
+                    review = remember(quiz.questions, outcome) { buildReview(quiz.questions, outcome) },
+                    onRetry = {
+                        if (nav.currentBackStackEntry == entry && nav.popBackStack(Routes.quiz(quizId), false)) {
+                            model.restart()
+                        }
+                    },
+                    onReturnToCourse = returnToCourse
+                )
             }
         }
         composable(Routes.Progress) {
