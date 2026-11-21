@@ -10,7 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.elearning.data.remote.FirebaseAuthRepository
+import androidx.compose.ui.platform.LocalContext
+import com.example.elearning.ElearningApp
+import com.example.elearning.ui.viewmodel.CourseListViewModel
 import com.example.elearning.ui.viewmodel.AuthViewModel
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -31,7 +33,8 @@ import com.example.elearning.ui.screens.ProfileScreen
 @Composable
 fun AppNavHost() {
     val nav = rememberNavController()
-    val factory = remember { AuthViewModel.Factory(FirebaseAuthRepository()) }
+    val container = (LocalContext.current.applicationContext as ElearningApp).container
+    val factory = remember { AuthViewModel.Factory(container.authRepository) }
     val auth: AuthViewModel = viewModel(factory = factory)
     val state by auth.uiState.collectAsStateWithLifecycle()
     if (state.isInitializing) {
@@ -74,8 +77,15 @@ fun AppNavHost() {
             )
         }
         composable(Routes.CourseList) {
+            val courses: CourseListViewModel = viewModel(factory = remember {
+                CourseListViewModel.Factory(container.courseRepository)
+            })
+            val listState by courses.uiState.collectAsStateWithLifecycle()
             CourseListScreen(
-                onCourseDetail = { nav.navigate(Routes.course(it)) },
+                uiState = listState,
+                onQueryChange = courses::setQuery,
+                onCategoryChange = courses::selectCategory,
+                onCourseClick = { nav.navigate(Routes.course(it)) },
                 onProgress = { nav.navigate(Routes.Progress) },
                 onProfile = { nav.navigate(Routes.Profile) }
             )

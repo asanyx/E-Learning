@@ -15,7 +15,11 @@ interface CourseDao {
     @Query("SELECT * FROM courses WHERE id = :id")
     fun observeById(id: String): Flow<CourseEntity?>
 
-    @Query("SELECT * FROM courses WHERE title LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%'")
+    @Query("""
+        SELECT * FROM courses
+        WHERE title LIKE '%' || REPLACE(REPLACE(REPLACE(:query, '!', '!!'), '%', '!%'), '_', '!_') || '%' ESCAPE '!'
+           OR category LIKE '%' || REPLACE(REPLACE(REPLACE(:query, '!', '!!'), '%', '!%'), '_', '!_') || '%' ESCAPE '!'
+    """)
     fun search(query: String): Flow<List<CourseEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

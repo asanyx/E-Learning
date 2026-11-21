@@ -30,4 +30,9 @@
     <string name="profile_back">Wstecz</string>
     <string name="profile_save">Zapisz</string>
     <string name="profile_sign_out">Wyloguj</string>
+    <string name="courses_search">Szukaj kursu</string>
+    <string name="courses_clear">Wyczyść wyszukiwanie</string>
+    <string name="courses_all">Wszystkie</string>
+    <string name="courses_empty">Brak kursów pasujących do wyszukiwania</string>
+    <string name="courses_progress">Postępy</string>
 </resources>
