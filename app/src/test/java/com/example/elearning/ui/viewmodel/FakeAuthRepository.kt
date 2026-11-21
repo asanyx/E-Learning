@@ -23,5 +23,8 @@ internal class FakeAuthRepository : AuthRepository {
     override suspend fun signIn(email: String, password: String) = authenticate()
     override suspend fun register(name: String, email: String, password: String) = authenticate()
     override suspend fun signOut() { currentUser.value = null }
-    override suspend fun updateDisplayName(name: String): AuthResult = error("Unused in test")
+    override suspend fun updateDisplayName(name: String): AuthResult {
+        if (result is AuthResult.Success) result = AuthResult.Success(account.copy(name = name))
+        return authenticate()
+    }
 }

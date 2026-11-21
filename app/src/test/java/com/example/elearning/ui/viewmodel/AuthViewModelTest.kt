@@ -78,4 +78,44 @@ class AuthViewModelTest {
         runCurrent()
         assertNull(model.uiState.value.user)
     }
+
+    @Test
+    fun initializationEndsAfterFirstAnonymousEmission() {
+        assertTrue(model.uiState.value.isInitializing)
+        dispatcher.scheduler.runCurrent()
+        assertFalse(model.uiState.value.isInitializing)
+        assertNull(model.uiState.value.user)
+    }
+
+    @Test
+    fun invalidNameSkipsRepository() = runTest {
+        model.updateName(" J ")
+        runCurrent()
+        assertEquals(listOf(ValidationError.NAME_TOO_SHORT), model.uiState.value.validationErrors)
+        assertEquals(0, repository.calls)
+    }
+
+    @Test
+    fun savedNameUpdatesUser() = runTest {
+        repository.currentUser.value = repository.account
+        model.updateName(" Anna ")
+        runCurrent()
+        assertTrue(model.uiState.value.isLoading)
+        repository.responseReady.complete(Unit)
+        runCurrent()
+        assertEquals(repository.account.copy(name = "Anna"), model.uiState.value.user)
+        assertFalse(model.uiState.value.isLoading)
+    }
+
+    @Test
+    fun failedNameUpdateKeepsUserAndShowsError() = runTest {
+        repository.currentUser.value = repository.account
+        repository.result = AuthResult.Failure(AuthError.NETWORK)
+        repository.responseReady.complete(Unit)
+        model.updateName("Anna")
+        runCurrent()
+        assertEquals(AuthError.NETWORK, model.uiState.value.authError)
+        assertEquals(repository.account, model.uiState.value.user)
+        assertFalse(model.uiState.value.isLoading)
+    }
 }

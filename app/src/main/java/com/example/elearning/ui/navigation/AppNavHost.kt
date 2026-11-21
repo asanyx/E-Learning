@@ -1,7 +1,17 @@
 package com.example.elearning.ui.navigation
 
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.elearning.data.remote.FirebaseAuthRepository
+import com.example.elearning.ui.viewmodel.AuthViewModel
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -21,16 +31,46 @@ import com.example.elearning.ui.screens.ProfileScreen
 @Composable
 fun AppNavHost() {
     val nav = rememberNavController()
-    NavHost(nav, startDestination = Routes.Login, modifier = Modifier.safeDrawingPadding()) {
+    val factory = remember { AuthViewModel.Factory(FirebaseAuthRepository()) }
+    val auth: AuthViewModel = viewModel(factory = factory)
+    val state by auth.uiState.collectAsStateWithLifecycle()
+    if (state.isInitializing) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+    val startDestination = rememberSaveable {
+        if (state.user == null) Routes.Login else Routes.CourseList
+    }
+    val entry by nav.currentBackStackEntryAsState()
+    val route = entry?.destination?.route
+    val isAuthRoute = route == Routes.Login || route == Routes.Register
+
+    LaunchedEffect(entry) {
+        if (isAuthRoute || route == Routes.Profile) auth.clearErrors()
+    }
+    LaunchedEffect(route, state.user, state.isLoading, state.authError) {
+        if (isAuthRoute && state.user != null && !state.isLoading && state.authError == null) {
+            nav.navigate(Routes.CourseList) { popUpTo(0) { inclusive = true } }
+        } else if (route != null && !isAuthRoute && state.user == null) {
+            nav.navigate(Routes.Login) { popUpTo(0) { inclusive = true } }
+        }
+    }
+
+    NavHost(nav, startDestination = startDestination, modifier = Modifier.safeDrawingPadding()) {
         composable(Routes.Login) {
             LoginScreen(
-                onRegister = { nav.navigate(Routes.Register) },
-                onCourseList = { nav.navigate(Routes.CourseList) }
+                uiState = state,
+                onLogin = auth::login,
+                onRegister = { nav.navigate(Routes.Register) { launchSingleTop = true } }
             )
         }
         composable(Routes.Register) {
             RegisterScreen(
-                onCourseList = { nav.navigate(Routes.CourseList) }
+                uiState = state,
+                onRegister = auth::register,
+                onLogin = { nav.popBackStack() }
             )
         }
         composable(Routes.CourseList) {
@@ -70,7 +110,17 @@ fun AppNavHost() {
             )
         }
         composable(Routes.Profile) {
+            val user = state.user ?: return@composable
+            var name by rememberSaveable(user.uid, user.name) { mutableStateOf(user.name) }
             ProfileScreen(
+                user = user,
+                name = name,
+                onNameChange = { name = it },
+                onSave = { auth.updateName(name) },
+                isLoading = state.isLoading,
+                nameError = state.validationErrors.firstOrNull(),
+                authError = state.authError,
+                onSignOut = auth::signOut,
                 onBack = { nav.popBackStack() }
             )
         }

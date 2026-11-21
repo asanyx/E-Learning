@@ -16,7 +16,8 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val validationErrors: List<ValidationError> = emptyList(),
     val authError: AuthError? = null,
-    val user: AuthUser? = null
+    val user: AuthUser? = null,
+    val isInitializing: Boolean = true
 )
 
 class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
@@ -25,7 +26,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            repository.currentUser.collect { user -> state.update { it.copy(user = user) } }
+            repository.currentUser.collect { user -> state.update { it.copy(user = user, isInitializing = false) } }
         }
     }
 
@@ -35,6 +36,11 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     fun register(name: String, email: String, password: String, confirmation: String) =
         authenticate(AuthValidator.validateRegistration(name, email, password, confirmation)) {
             repository.register(name, email, password)
+        }
+
+    fun updateName(name: String) =
+        authenticate(listOfNotNull(AuthValidator.validateName(name))) {
+            repository.updateDisplayName(name.trim())
         }
 
     private fun authenticate(errors: List<ValidationError>, action: suspend () -> AuthResult) {

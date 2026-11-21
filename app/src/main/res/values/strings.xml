@@ -1,3 +1,33 @@
 <resources>
     <string name="app_name">platformaE-Learningowa</string>
+    <string name="auth_name">Imię</string>
+    <string name="auth_email">E-mail</string>
+    <string name="auth_password">Hasło</string>
+    <string name="auth_confirmation">Potwierdź hasło</string>
+    <string name="auth_login">Zaloguj</string>
+    <string name="auth_register">Zarejestruj</string>
+    <string name="auth_login_title">Logowanie</string>
+    <string name="auth_register_title">Rejestracja</string>
+    <string name="auth_to_register">Nie masz konta? Zarejestruj się</string>
+    <string name="auth_to_login">Masz już konto? Zaloguj się</string>
+    <string name="auth_show">Pokaż hasło</string>
+    <string name="auth_hide">Ukryj hasło</string>
+    <string name="auth_empty_name">Podaj imię.</string>
+    <string name="auth_name_too_short">Imię musi mieć co najmniej 2 znaki.</string>
+    <string name="auth_empty_email">Podaj adres e-mail.</string>
+    <string name="auth_invalid_email">Podaj poprawny adres e-mail.</string>
+    <string name="auth_empty_password">Podaj hasło.</string>
+    <string name="auth_password_too_short">Hasło musi mieć co najmniej 8 znaków.</string>
+    <string name="auth_password_needs_letter_and_digit">Hasło musi zawierać literę i cyfrę.</string>
+    <string name="auth_passwords_do_not_match">Hasła muszą być identyczne.</string>
+    <string name="auth_invalid_credentials">Nieprawidłowy e-mail lub hasło.</string>
+    <string name="auth_email_already_in_use">Ten e-mail jest już zajęty.</string>
+    <string name="auth_weak_password">Hasło jest zbyt słabe.</string>
+    <string name="auth_network">Brak połączenia z internetem.</string>
+    <string name="auth_unknown">Coś poszło nie tak.</string>
+    <string name="courses_title">Kursy</string>
+    <string name="profile_title">Profil</string>
+    <string name="profile_back">Wstecz</string>
+    <string name="profile_save">Zapisz</string>
+    <string name="profile_sign_out">Wyloguj</string>
 </resources>
