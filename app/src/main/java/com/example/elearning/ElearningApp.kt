@@ -1,6 +1,15 @@
 package com.example.elearning
 
 import android.app.Application
+import android.util.Log
+import androidx.work.WorkManager
+import com.example.elearning.data.download.HttpUrlConnectionFetcher
+import com.example.elearning.data.download.MaterialDownloadRepository
+import com.example.elearning.data.download.MaterialDownloader
+import com.example.elearning.data.download.RoomDownloadStore
+import com.example.elearning.data.download.WorkManagerMaterialDownloadRepository
+import java.io.File
+import kotlinx.coroutines.CancellationException
 import com.example.elearning.data.remote.FirestoreResultsDataSource
 import com.example.elearning.data.repository.QuizResultSyncer
 import kotlinx.coroutines.flow.collectLatest
@@ -26,6 +35,12 @@ import kotlinx.coroutines.launch
 class AppContainer(application: Application) {
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val database = AppDatabase.getInstance(application)
+    val materialDownloader = MaterialDownloader(
+        HttpUrlConnectionFetcher(), File(application.filesDir, "materials"), RoomDownloadStore(database.materialDao())
+    )
+    val materialDownloadRepository: MaterialDownloadRepository by lazy {
+        WorkManagerMaterialDownloadRepository(WorkManager.getInstance(application), database.materialDao(), materialDownloader)
+    }
     val courseRepository: CourseRepository = RoomCourseRepository(database.courseDao())
     val materialRepository: MaterialRepository = RoomMaterialRepository(database.materialDao(), database.completedMaterialDao())
     val quizRepository: QuizRepository = RoomQuizRepository(database.quizDao())
@@ -49,6 +64,14 @@ class ElearningApp : Application() {
         }
         container.applicationScope.launch {
             seedIfEmpty(container.database)
+            try {
+                container.materialDownloader.verifyDownloads()
+                container.materialDownloader.cleanupOrphans()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Log.w("ElearningApp", "Błąd porządkowania pobranych materiałów", error)
+            }
         }
     }
 }
