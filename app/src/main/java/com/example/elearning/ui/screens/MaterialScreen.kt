@@ -1,6 +1,7 @@
 package com.example.elearning.ui.screens
 
 import android.content.ActivityNotFoundException
+import com.example.elearning.domain.network.Availability
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -74,13 +75,15 @@ fun MaterialScreen(
                             MaterialType.PDF, MaterialType.VIDEO -> {
                                 val label = if (material.type == MaterialType.PDF) R.string.material_pdf else R.string.material_video
                                 val allowed = DownloadPolicy.isDownloadable(material.type, material.contentUrl)
-                                Button(onClick = {
+                                val canOpen = uiState.availability == Availability.AVAILABLE
+                                Button(enabled = canOpen, onClick = {
                                     val result = openMaterial(context, material, downloadState.takeIf { allowed })
                                     if (result != null) {
                                         if (result == R.string.missing_file) onDelete()
                                         scope.launch { host.showSnackbar(context.getString(result)) }
                                     }
                                 }) { Text(stringResource(label)) }
+                                if (!canOpen) Text(stringResource(R.string.material_internet_hint))
                                 if (allowed) OfflineSection(downloadState, onStart, onCancel, onDelete, onRetry)
                             }
                         }

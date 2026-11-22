@@ -4,6 +4,8 @@ import com.example.elearning.data.download.DownloadState
 import com.example.elearning.data.download.MaterialDownloadRepository
 import com.example.elearning.ui.screens.downloadFailureMessage
 import com.example.platformaELearningowa.R
+import com.example.elearning.data.network.NetworkMonitor
+import com.example.elearning.domain.network.Availability
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewModelScope
 import com.example.elearning.data.repository.MaterialRepository
@@ -24,6 +26,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class MaterialViewModelTest {
     private val repository = FakeMaterialRepository()
+    private val network = FakeNetworkMonitor()
     private val downloads = FakeMaterialDownloadRepository()
     private lateinit var model: MaterialViewModel
 
@@ -37,13 +40,27 @@ class MaterialViewModelTest {
     }
 
     private fun TestScope.subscribe(id: String) {
-        model = MaterialViewModel(id, "anna", repository, downloads)
+        model = MaterialViewModel(id, "anna", repository, downloads, network)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.downloadState.collect {} }
     }
 
     private fun usePdf() {
         repository.lesson = repository.lesson.copy(type = MaterialType.PDF, contentUrl = "https://example.org/m.pdf")
+    }
+
+    @Test
+    fun availabilityFollowsNetworkChanges() = runTest {
+        usePdf()
+        subscribe("m")
+        runCurrent()
+        assertEquals(Availability.AVAILABLE, model.uiState.value.availability)
+        network.isOnline.value = false
+        runCurrent()
+        assertEquals(Availability.REQUIRES_INTERNET, model.uiState.value.availability)
+        network.isOnline.value = true
+        runCurrent()
+        assertEquals(Availability.AVAILABLE, model.uiState.value.availability)
     }
 
     @Test
@@ -143,6 +160,10 @@ internal class FakeMaterialRepository : MaterialRepository {
         val key = userId to materialId
         if (completed) this.completed.value += key else this.completed.value -= key
     }
+}
+
+private class FakeNetworkMonitor : NetworkMonitor {
+    override val isOnline = MutableStateFlow(true)
 }
 
 private class FakeMaterialDownloadRepository : MaterialDownloadRepository {

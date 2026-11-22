@@ -1,5 +1,8 @@
 package com.example.elearning.ui.navigation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
+import com.example.elearning.ui.screens.OfflineBanner
 import androidx.activity.compose.BackHandler
 import com.example.elearning.domain.quiz.buildReview
 import com.example.elearning.ui.screens.QuitQuizDialog
@@ -68,162 +71,169 @@ fun AppNavHost() {
         }
     }
 
-    NavHost(nav, startDestination = startDestination, modifier = Modifier.safeDrawingPadding()) {
-        composable(Routes.Login) {
-            LoginScreen(
-                uiState = state,
-                onLogin = auth::login,
-                onRegister = { nav.navigate(Routes.Register) { launchSingleTop = true } }
-            )
+    val online by container.networkMonitor.isOnline.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        AnimatedVisibility(visible = state.user != null && !isAuthRoute && !online) {
+            OfflineBanner()
         }
-        composable(Routes.Register) {
-            RegisterScreen(
-                uiState = state,
-                onRegister = auth::register,
-                onLogin = { nav.popBackStack() }
-            )
-        }
-        composable(Routes.CourseList) {
-            val courses: CourseListViewModel = viewModel(factory = remember {
-                CourseListViewModel.Factory(container.courseRepository)
-            })
-            val listState by courses.uiState.collectAsStateWithLifecycle()
-            CourseListScreen(
-                uiState = listState,
-                onQueryChange = courses::setQuery,
-                onCategoryChange = courses::selectCategory,
-                onCourseClick = { nav.navigate(Routes.course(it)) },
-                onProgress = { nav.navigate(Routes.Progress) },
-                onProfile = { nav.navigate(Routes.Profile) }
-            )
-        }
-        composable(Routes.CourseDetail, arguments = listOf(navArgument("courseId") { type = NavType.StringType })) { entry ->
-            val userId = state.user?.uid ?: return@composable
-            val courseId = requireNotNull(entry.arguments?.getString("courseId"))
-            val detail: CourseDetailViewModel = viewModel(key = userId, factory = remember(courseId, userId) {
-                CourseDetailViewModel.Factory(courseId, userId, container.courseRepository,
-                    container.materialRepository, container.quizRepository)
-            })
-            val detailState by detail.uiState.collectAsStateWithLifecycle()
-            CourseDetailScreen(
-                uiState = detailState,
-                saveErrors = detail.saveErrors,
-                onBack = { if (nav.currentBackStackEntry == entry && nav.previousBackStackEntry != null) nav.popBackStack() },
-                onToggleCompleted = detail::toggleCompleted,
-                onMaterialClick = { nav.navigate(Routes.material(it)) },
-                onQuizClick = { nav.navigate(Routes.quiz(it)) }
-            )
-        }
-        composable(Routes.Material, arguments = listOf(navArgument("materialId") { type = NavType.StringType })) { entry ->
-            val userId = state.user?.uid ?: return@composable
-            val materialId = requireNotNull(entry.arguments?.getString("materialId"))
-            val model: MaterialViewModel = viewModel(key = userId, factory = remember(materialId, userId) {
-                MaterialViewModel.Factory(materialId, userId, container.materialRepository, container.materialDownloadRepository)
-            })
-            val materialState by model.uiState.collectAsStateWithLifecycle()
-            MaterialScreen(
-                uiState = materialState,
-                downloadState = model.downloadState.collectAsStateWithLifecycle().value,
-                downloadErrors = model.downloadErrors,
-                onStart = model::startDownload,
-                onCancel = model::cancelDownload,
-                onDelete = model::deleteDownload,
-                onRetry = model::retryDownload,
-                onReload = model::reload,
-                saveErrors = model.saveErrors,
-                onToggleCompleted = model::toggleCompleted,
-                onBack = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
-            )
-        }
-        composable(Routes.Quiz, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
-            val quizId = requireNotNull(entry.arguments?.getString("quizId"))
-            val model: QuizViewModel = viewModel(viewModelStoreOwner = entry, factory = remember(quizId) {
-                QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository,
-                    container.quizResultSyncer, container.applicationScope) { auth.uiState.value.user?.uid }
-            })
-            val quiz by model.uiState.collectAsStateWithLifecycle()
-            var confirmExit by rememberSaveable { mutableStateOf(false) }
-            val active = quiz.currentQuestion != null && quiz.outcome == null
-            val leave: () -> Unit = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
-            BackHandler(enabled = active) { confirmExit = true }
-            QuizScreen(
-                state = quiz,
-                onBack = { if (active) confirmExit = true else leave() },
-                onAnswer = model::selectAnswer,
-                onPrevious = model::previous,
-                onNext = model::next,
-                onFinish = {
-                    model.finish()
-                    if (model.uiState.value.outcome != null && nav.currentBackStackEntry == entry) {
-                        nav.navigate(Routes.quizResult(quizId))
+        NavHost(nav, startDestination = startDestination, modifier = Modifier.weight(1f)) {
+            composable(Routes.Login) {
+                LoginScreen(
+                    uiState = state,
+                    onLogin = auth::login,
+                    onRegister = { nav.navigate(Routes.Register) { launchSingleTop = true } }
+                )
+            }
+            composable(Routes.Register) {
+                RegisterScreen(
+                    uiState = state,
+                    onRegister = auth::register,
+                    onLogin = { nav.popBackStack() }
+                )
+            }
+            composable(Routes.CourseList) {
+                val courses: CourseListViewModel = viewModel(factory = remember {
+                    CourseListViewModel.Factory(container.courseRepository)
+                })
+                val listState by courses.uiState.collectAsStateWithLifecycle()
+                CourseListScreen(
+                    uiState = listState,
+                    onQueryChange = courses::setQuery,
+                    onCategoryChange = courses::selectCategory,
+                    onCourseClick = { nav.navigate(Routes.course(it)) },
+                    onProgress = { nav.navigate(Routes.Progress) },
+                    onProfile = { nav.navigate(Routes.Profile) }
+                )
+            }
+            composable(Routes.CourseDetail, arguments = listOf(navArgument("courseId") { type = NavType.StringType })) { entry ->
+                val userId = state.user?.uid ?: return@composable
+                val courseId = requireNotNull(entry.arguments?.getString("courseId"))
+                val detail: CourseDetailViewModel = viewModel(key = userId, factory = remember(courseId, userId) {
+                    CourseDetailViewModel.Factory(courseId, userId, container.courseRepository,
+                        container.materialRepository, container.quizRepository)
+                })
+                val detailState by detail.uiState.collectAsStateWithLifecycle()
+                CourseDetailScreen(
+                    uiState = detailState,
+                    isOnline = online,
+                    saveErrors = detail.saveErrors,
+                    onBack = { if (nav.currentBackStackEntry == entry && nav.previousBackStackEntry != null) nav.popBackStack() },
+                    onToggleCompleted = detail::toggleCompleted,
+                    onMaterialClick = { nav.navigate(Routes.material(it)) },
+                    onQuizClick = { nav.navigate(Routes.quiz(it)) }
+                )
+            }
+            composable(Routes.Material, arguments = listOf(navArgument("materialId") { type = NavType.StringType })) { entry ->
+                val userId = state.user?.uid ?: return@composable
+                val materialId = requireNotNull(entry.arguments?.getString("materialId"))
+                val model: MaterialViewModel = viewModel(key = userId, factory = remember(materialId, userId) {
+                    MaterialViewModel.Factory(materialId, userId, container.materialRepository, container.materialDownloadRepository, container.networkMonitor)
+                })
+                val materialState by model.uiState.collectAsStateWithLifecycle()
+                MaterialScreen(
+                    uiState = materialState,
+                    downloadState = model.downloadState.collectAsStateWithLifecycle().value,
+                    downloadErrors = model.downloadErrors,
+                    onStart = model::startDownload,
+                    onCancel = model::cancelDownload,
+                    onDelete = model::deleteDownload,
+                    onRetry = model::retryDownload,
+                    onReload = model::reload,
+                    saveErrors = model.saveErrors,
+                    onToggleCompleted = model::toggleCompleted,
+                    onBack = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
+                )
+            }
+            composable(Routes.Quiz, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
+                val quizId = requireNotNull(entry.arguments?.getString("quizId"))
+                val model: QuizViewModel = viewModel(viewModelStoreOwner = entry, factory = remember(quizId) {
+                    QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository,
+                        container.quizResultSyncer, container.applicationScope) { auth.uiState.value.user?.uid }
+                })
+                val quiz by model.uiState.collectAsStateWithLifecycle()
+                var confirmExit by rememberSaveable { mutableStateOf(false) }
+                val active = quiz.currentQuestion != null && quiz.outcome == null
+                val leave: () -> Unit = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }
+                BackHandler(enabled = active) { confirmExit = true }
+                QuizScreen(
+                    state = quiz,
+                    onBack = { if (active) confirmExit = true else leave() },
+                    onAnswer = model::selectAnswer,
+                    onPrevious = model::previous,
+                    onNext = model::next,
+                    onFinish = {
+                        model.finish()
+                        if (model.uiState.value.outcome != null && nav.currentBackStackEntry == entry) {
+                            nav.navigate(Routes.quizResult(quizId))
+                        }
+                    }
+                )
+                if (confirmExit && active) {
+                    QuitQuizDialog(onQuit = leave, onStay = { confirmExit = false })
+                }
+            }
+            composable(Routes.QuizResult, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
+                val quizId = requireNotNull(entry.arguments?.getString("quizId"))
+                val quizEntry = remember(entry) { nav.getBackStackEntry(Routes.quiz(quizId)) }
+                val model: QuizViewModel = viewModel(viewModelStoreOwner = quizEntry, factory = remember(quizId) {
+                    QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository,
+                        container.quizResultSyncer, container.applicationScope) { auth.uiState.value.user?.uid }
+                })
+                val quiz by model.uiState.collectAsStateWithLifecycle()
+                val outcome = quiz.outcome
+                val returnToCourse: () -> Unit = {
+                    if (nav.currentBackStackEntry == entry) {
+                        nav.popBackStack(Routes.CourseDetail, inclusive = false)
                     }
                 }
-            )
-            if (confirmExit && active) {
-                QuitQuizDialog(onQuit = leave, onStay = { confirmExit = false })
-            }
-        }
-        composable(Routes.QuizResult, arguments = listOf(navArgument("quizId") { type = NavType.StringType })) { entry ->
-            val quizId = requireNotNull(entry.arguments?.getString("quizId"))
-            val quizEntry = remember(entry) { nav.getBackStackEntry(Routes.quiz(quizId)) }
-            val model: QuizViewModel = viewModel(viewModelStoreOwner = quizEntry, factory = remember(quizId) {
-                QuizViewModel.Factory(quizId, container.quizRepository, container.quizResultRepository,
-                    container.quizResultSyncer, container.applicationScope) { auth.uiState.value.user?.uid }
-            })
-            val quiz by model.uiState.collectAsStateWithLifecycle()
-            val outcome = quiz.outcome
-            val returnToCourse: () -> Unit = {
-                if (nav.currentBackStackEntry == entry) {
-                    nav.popBackStack(Routes.CourseDetail, inclusive = false)
+                BackHandler(onBack = returnToCourse)
+                if (outcome == null) {
+                    LaunchedEffect(entry) { returnToCourse() }
+                } else {
+                    QuizResultScreen(
+                        outcome = outcome,
+                        saveStatus = quiz.saveStatus,
+                        onRetrySave = model::retrySave,
+                        review = remember(quiz.questions, outcome) { buildReview(quiz.questions, outcome) },
+                        onRetry = {
+                            if (nav.currentBackStackEntry == entry && nav.popBackStack(Routes.quiz(quizId), false)) {
+                                model.restart()
+                            }
+                        },
+                        onReturnToCourse = returnToCourse
+                    )
                 }
             }
-            BackHandler(onBack = returnToCourse)
-            if (outcome == null) {
-                LaunchedEffect(entry) { returnToCourse() }
-            } else {
-                QuizResultScreen(
-                    outcome = outcome,
-                    saveStatus = quiz.saveStatus,
-                    onRetrySave = model::retrySave,
-                    review = remember(quiz.questions, outcome) { buildReview(quiz.questions, outcome) },
-                    onRetry = {
-                        if (nav.currentBackStackEntry == entry && nav.popBackStack(Routes.quiz(quizId), false)) {
-                            model.restart()
-                        }
-                    },
-                    onReturnToCourse = returnToCourse
+            composable(Routes.Progress) { entry ->
+                val userId = state.user?.uid ?: return@composable
+                key(userId) {
+                    val model: ProgressViewModel = viewModel(key = userId, factory = remember(userId) {
+                        ProgressViewModel.Factory(userId, container.courseRepository, container.materialRepository,
+                            container.quizRepository, container.quizResultRepository)
+                    })
+                    val progress by model.uiState.collectAsStateWithLifecycle()
+                    ProgressScreen(
+                        state = progress,
+                        onBack = { if (nav.currentBackStackEntry == entry) nav.popBackStack(Routes.CourseList, false) },
+                        onCourseClick = { nav.navigate(Routes.course(it)) }
+                    )
+                }
+            }
+            composable(Routes.Profile) {
+                val user = state.user ?: return@composable
+                var name by rememberSaveable(user.uid, user.name) { mutableStateOf(user.name) }
+                ProfileScreen(
+                    user = user,
+                    name = name,
+                    onNameChange = { name = it },
+                    onSave = { auth.updateName(name) },
+                    isLoading = state.isLoading,
+                    nameError = state.validationErrors.firstOrNull(),
+                    authError = state.authError,
+                    onSignOut = auth::signOut,
+                    onBack = { nav.popBackStack() }
                 )
             }
-        }
-        composable(Routes.Progress) { entry ->
-            val userId = state.user?.uid ?: return@composable
-            key(userId) {
-                val model: ProgressViewModel = viewModel(key = userId, factory = remember(userId) {
-                    ProgressViewModel.Factory(userId, container.courseRepository, container.materialRepository,
-                        container.quizRepository, container.quizResultRepository)
-                })
-                val progress by model.uiState.collectAsStateWithLifecycle()
-                ProgressScreen(
-                    state = progress,
-                    onBack = { if (nav.currentBackStackEntry == entry) nav.popBackStack(Routes.CourseList, false) },
-                    onCourseClick = { nav.navigate(Routes.course(it)) }
-                )
-            }
-        }
-        composable(Routes.Profile) {
-            val user = state.user ?: return@composable
-            var name by rememberSaveable(user.uid, user.name) { mutableStateOf(user.name) }
-            ProfileScreen(
-                user = user,
-                name = name,
-                onNameChange = { name = it },
-                onSave = { auth.updateName(name) },
-                isLoading = state.isLoading,
-                nameError = state.validationErrors.firstOrNull(),
-                authError = state.authError,
-                onSignOut = auth::signOut,
-                onBack = { nav.popBackStack() }
-            )
         }
     }
 }

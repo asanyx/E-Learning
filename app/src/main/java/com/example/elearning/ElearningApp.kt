@@ -1,5 +1,6 @@
 package com.example.elearning
 
+import com.example.elearning.data.network.ConnectivityNetworkMonitor
 import android.app.Application
 import android.util.Log
 import androidx.work.WorkManager
@@ -34,6 +35,7 @@ import kotlinx.coroutines.launch
 
 class AppContainer(application: Application) {
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val networkMonitor = ConnectivityNetworkMonitor(application, applicationScope)
     val database = AppDatabase.getInstance(application)
     val materialDownloader = MaterialDownloader(
         HttpUrlConnectionFetcher(), File(application.filesDir, "materials"), RoomDownloadStore(database.materialDao())

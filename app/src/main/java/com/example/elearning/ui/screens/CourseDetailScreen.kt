@@ -16,6 +16,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.elearning.domain.network.Availability
+import com.example.elearning.domain.network.materialAvailability
 import com.example.elearning.domain.model.*
 import com.example.elearning.ui.theme.ElearningTheme
 import com.example.elearning.ui.viewmodel.CourseDetailUiState
@@ -28,7 +30,8 @@ fun CourseDetailScreen(
     onToggleCompleted: (String) -> Unit,
     onMaterialClick: (String) -> Unit,
     onQuizClick: (String) -> Unit,
-    saveErrors: Flow<Unit> = emptyFlow()
+    saveErrors: Flow<Unit> = emptyFlow(),
+    isOnline: Boolean = true
 ) {
     CompletionSnackbar(saveErrors) {
         Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -52,7 +55,7 @@ fun CourseDetailScreen(
                     item { Text(stringResource(R.string.detail_materials), style = MaterialTheme.typography.titleMedium) }
                     if (uiState.materials.isEmpty()) item { Text(stringResource(R.string.detail_no_materials)) }
                     items(uiState.materials) { material ->
-                        MaterialRow(material, { onMaterialClick(material.id) }, { onToggleCompleted(material.id) })
+                        MaterialRow(material, isOnline, { onMaterialClick(material.id) }, { onToggleCompleted(material.id) })
                     }
                     item { Text(stringResource(R.string.detail_quizzes), style = MaterialTheme.typography.titleMedium) }
                     if (uiState.quizzes.isEmpty()) item { Text(stringResource(R.string.detail_no_quizzes)) }
@@ -66,7 +69,7 @@ fun CourseDetailScreen(
 }
 
 @Composable
-private fun MaterialRow(material: Material, onOpen: () -> Unit, onToggle: () -> Unit) {
+private fun MaterialRow(material: Material, isOnline: Boolean, onOpen: () -> Unit, onToggle: () -> Unit) {
     val (icon, label) = when (material.type) {
         MaterialType.TEXT -> R.drawable.ic_detail_text to R.string.detail_text
         MaterialType.PDF -> R.drawable.ic_detail_pdf to R.string.detail_pdf
@@ -77,7 +80,12 @@ private fun MaterialRow(material: Material, onOpen: () -> Unit, onToggle: () -> 
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(painterResource(icon), stringResource(label))
-        Text(material.title, Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text(material.title)
+            if (materialAvailability(material.type, material.isDownloaded, isOnline) == Availability.REQUIRES_INTERNET) {
+                Text(stringResource(R.string.requires_internet), style = MaterialTheme.typography.bodySmall)
+            }
+        }
         if (material.isDownloaded) {
             Icon(painterResource(R.drawable.ic_detail_downloaded), stringResource(R.string.detail_downloaded))
         }

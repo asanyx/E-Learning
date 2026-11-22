@@ -110,4 +110,8 @@
     <string name="download_failure">Nie udało się wykonać operacji na pliku</string>
     <string name="missing_file">Plik nie został znaleziony</string>
     <string name="load_material_error">Nie udało się wczytać materiału</string>
+    <string name="offline_banner">Brak połączenia z internetem. Dostępne są pobrane materiały i quizy.</string>
+    <string name="offline_icon">Brak połączenia</string>
+    <string name="material_internet_hint">Ten materiał wymaga internetu. Pobierz go, gdy będziesz online.</string>
+    <string name="requires_internet">Wymaga internetu</string>
 </resources>

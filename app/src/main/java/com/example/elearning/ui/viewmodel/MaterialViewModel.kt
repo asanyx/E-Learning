@@ -3,6 +3,10 @@ package com.example.elearning.ui.viewmodel
 import com.example.elearning.data.download.DownloadState
 import com.example.elearning.data.download.MaterialDownloadRepository
 import com.example.elearning.domain.download.DownloadPolicy
+import com.example.elearning.domain.network.Availability
+import com.example.elearning.domain.network.materialAvailability
+import com.example.elearning.data.network.NetworkMonitor
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.channelFlow
@@ -28,14 +32,16 @@ data class MaterialUiState(
     val material: Material? = null,
     val isLoading: Boolean = true,
     val notFound: Boolean = false,
-    val loadError: Boolean = false
+    val loadError: Boolean = false,
+    val availability: Availability = Availability.AVAILABLE
 )
 
 class MaterialViewModel(
     private val materialId: String,
     private val userId: String,
     private val repository: MaterialRepository,
-    private val downloads: MaterialDownloadRepository
+    private val downloads: MaterialDownloadRepository,
+    networkMonitor: NetworkMonitor
 ) : ViewModel() {
     private val material = repository.observeMaterial(materialId, userId)
     private val errors = Channel<Unit>(Channel.BUFFERED)
@@ -46,9 +52,13 @@ class MaterialViewModel(
     val uiState = channelFlow {
         reloads.collectLatest {
             try {
-                material.collect {
-                    send(MaterialUiState(material = it, isLoading = false, notFound = it == null))
-                }
+                material.combine(networkMonitor.isOnline) { row, online ->
+                    MaterialUiState(
+                        material = row, isLoading = false, notFound = row == null,
+                        availability = row?.let { materialAvailability(it.type, it.isDownloaded, online) }
+                            ?: Availability.AVAILABLE
+                    )
+                }.collect { send(it) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -119,11 +129,12 @@ class MaterialViewModel(
         private val materialId: String,
         private val userId: String,
         private val repository: MaterialRepository,
-        private val downloads: MaterialDownloadRepository
+        private val downloads: MaterialDownloadRepository,
+        private val networkMonitor: NetworkMonitor
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(MaterialViewModel::class.java))
-            return modelClass.cast(MaterialViewModel(materialId, userId, repository, downloads))!!
+            return modelClass.cast(MaterialViewModel(materialId, userId, repository, downloads, networkMonitor))!!
         }
     }
 }
