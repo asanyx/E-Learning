@@ -118,11 +118,18 @@ fun AppNavHost() {
             val userId = state.user?.uid ?: return@composable
             val materialId = requireNotNull(entry.arguments?.getString("materialId"))
             val model: MaterialViewModel = viewModel(key = userId, factory = remember(materialId, userId) {
-                MaterialViewModel.Factory(materialId, userId, container.materialRepository)
+                MaterialViewModel.Factory(materialId, userId, container.materialRepository, container.materialDownloadRepository)
             })
             val materialState by model.uiState.collectAsStateWithLifecycle()
             MaterialScreen(
                 uiState = materialState,
+                downloadState = model.downloadState.collectAsStateWithLifecycle().value,
+                downloadErrors = model.downloadErrors,
+                onStart = model::startDownload,
+                onCancel = model::cancelDownload,
+                onDelete = model::deleteDownload,
+                onRetry = model::retryDownload,
+                onReload = model::reload,
                 saveErrors = model.saveErrors,
                 onToggleCompleted = model::toggleCompleted,
                 onBack = { if (nav.currentBackStackEntry == entry) nav.navigateUp() }

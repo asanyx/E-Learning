@@ -17,8 +17,7 @@ import com.example.platformaELearningowa.R
 import kotlinx.coroutines.flow.Flow
 
 @Composable
-internal fun CompletionSnackbar(errors: Flow<Unit>, content: @Composable () -> Unit) {
-    val host = remember { SnackbarHostState() }
+internal fun CompletionSnackbar(errors: Flow<Unit>, host: SnackbarHostState = remember { SnackbarHostState() }, content: @Composable () -> Unit) {
     val owner = LocalLifecycleOwner.current
     val message = stringResource(R.string.completion_save_failed)
     LaunchedEffect(errors, owner, message) {

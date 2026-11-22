@@ -45,7 +45,7 @@
     <string name="detail_text">Tekst</string>
     <string name="detail_pdf">PDF</string>
     <string name="detail_video">Wideo</string>
-    <string name="detail_downloaded">Pobrany</string>
+    <string name="detail_downloaded">Dostępny offline</string>
     <string name="detail_completion">Ukończenie materiału: %1$s</string>
     <string name="material_title">Materiał</string>
     <string name="material_missing">Nie znaleziono materiału</string>
@@ -93,4 +93,21 @@
     <string name="quiz_save_failed">Nie udało się zapisać wyniku w historii.</string>
     <string name="quiz_new_attempt">Rozwiąż ponownie</string>
     <string name="completion_save_failed">Nie udało się zapisać zmiany</string>
+    <string name="offline">Tryb offline</string>
+    <string name="download">Pobierz na urządzenie</string>
+    <string name="queued">Oczekuje na połączenie...</string>
+    <string name="cancel_download">Anuluj</string>
+    <string name="downloading">Pobieranie…</string>
+    <string name="percent">Pobieranie: %1$d%%</string>
+    <string name="remove_download">Usuń z urządzenia</string>
+    <string name="confirm_remove">Usunąć pobrany plik?</string>
+    <string name="retry_download">Spróbuj ponownie</string>
+    <string name="too_large">Plik przekracza limit 100 MB</string>
+    <string name="no_space">Brak miejsca na urządzeniu</string>
+    <string name="unsafe_url">Niebezpieczny adres materiału</string>
+    <string name="network_failure">Błąd sieci podczas pobierania</string>
+    <string name="http_failure">Serwer odmówił pobrania pliku</string>
+    <string name="download_failure">Nie udało się wykonać operacji na pliku</string>
+    <string name="missing_file">Plik nie został znaleziony</string>
+    <string name="load_material_error">Nie udało się wczytać materiału</string>
 </resources>
